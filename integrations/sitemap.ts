@@ -23,7 +23,7 @@ export function sitemap(): AstroIntegration {
 	return AstroSitemap({
 		filter: (page) => isValidPath(new URL(page).pathname),
 		i18n: {
-			defaultLocale: 'en',
+			defaultLocale: 'zh-cn',
 			locales: Object.fromEntries(langTags.map((lang) => [lang, normalizeLangTag(lang)])),
 		},
 	});

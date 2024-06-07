@@ -1,0 +1,50 @@
+---
+import type { Props } from '@astrojs/starlight/props';
+
+import EditLink from 'virtual:starlight/components/EditLink';
+import LastUpdated from 'virtual:starlight/components/LastUpdated';
+import Pagination from 'virtual:starlight/components/Pagination';
+---
+
+<footer>
+	<div class="meta sl-flex">
+		<EditLink {...Astro.props} />
+		<LastUpdated {...Astro.props} />
+	</div>
+	<Pagination {...Astro.props} />
+	<div class="footer">
+		<a
+			rel="nofollow"
+			target="__blank"
+			href="https://zeabur.com?referralCode=ikxin&utm_source=ikxin"
+		>
+			Deployed on Zeabur
+		</a>
+		<a rel="nofollow" target="__blank" href="https://beian.miit.gov.cn"> 沪ICP备2024070610号-3</a>
+	</div>
+</footer>
+
+<style>
+	.meta {
+		gap: 0.75rem 3rem;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		margin-block: 3rem 1.5rem;
+		font-size: var(--sl-text-sm);
+		color: var(--sl-color-gray-3);
+	}
+	.meta > :global(p:only-child) {
+		margin-inline-start: auto;
+	}
+	.footer {
+		margin-top: 16px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		gap: 12px;
+	}
+	.footer > a {
+		font-size: 14px;
+		text-decoration: none;
+	}
+</style>

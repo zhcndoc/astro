@@ -17,17 +17,21 @@ const VERCEL_PREVIEW_SITE =
 	process.env.VERCEL_URL &&
 	`https://${process.env.VERCEL_URL}`;
 
-const site = VERCEL_PREVIEW_SITE || 'https://docs.astro.build/';
+const site = VERCEL_PREVIEW_SITE || 'https://astro.zhcndoc.com/';
 
 // https://astro.build/config
 export default defineConfig({
+	devToolbar: {
+    enabled: false
+  },
 	site,
 	integrations: [
 		starlight({
-			title: 'Docs',
+			title: 'Astro 中文文档',
 			customCss: ['./src/styles/custom.css'],
 			components: {
 				EditLink: './src/components/starlight/EditLink.astro',
+				Footer: './src/components/starlight/Footer.astro',
 				Head: './src/components/starlight/Head.astro',
 				Hero: './src/components/starlight/Hero.astro',
 				MarkdownContent: './src/components/starlight/MarkdownContent.astro',
