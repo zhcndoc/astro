@@ -393,7 +393,7 @@ La prise en charge du Markdown dans astro est géré par [remark](https://remark
 
 Astro applique par défaut les plugins [Markdown de GitHub](https://github.com/remarkjs/remark-gfm) et [SmartyPants](https://github.com/silvenon/remark-smartypants). Cela permet de générer des liens cliquables à partir du texte et de mettre en forme les [citations et les em-dashes](https://daringfireball.net/projects/smartypants/).
 
-Vous pouvez personnaliser la façon dont remark parse votre Markdown dans `astro.config.mjs`. Voir la liste complète des [options de configuration Markdown](/fr/reference/configuration-reference/#markdown-options).
+Vous pouvez personnaliser la façon dont remark parse votre Markdown dans `astro.config.mjs`. Voir la liste complète des [options de configuration Markdown](/fr/reference/configuration-reference/#options-de-markdown).
 
 ### Plugins Markdown
 
@@ -411,13 +411,11 @@ import { rehypeAccessibleEmojis } from 'rehype-accessible-emojis';
 export default defineConfig({
   markdown: {
     // Appliqué aux fichiers .md et .mdx
-    remarkPlugins: [remarkToc],
+    remarkPlugins: [remarkToc, { heading: 'toc', maxDepth: 3 }],
     rehypePlugins: [rehypeAccessibleEmojis],
   },
 });
 ```
-
-Notez que par défaut, `remarkToc` nécessite un [titre](https://github.com/remarkjs/remark-toc#optionsheading) "ToC" ou "Table des matières" (insensible à la casse) sur la page pour afficher la table des matières.
 
 #### ID de titres et plugins
 
@@ -450,7 +448,7 @@ export default defineConfig({
 
 Pour personnaliser un plugin, il faut lui fournir un objet `options` dans un tableau imbriqué.
 
-L'exemple ci-dessous ajoute [l'option de titres au plugin `remarkToc`](https://github.com/remarkjs/remark-toc#optionsheading) pour modifier l'emplacement de la table des matières, et [l'option `behavior` au plugin `rehype-autolink-headings`](https://github.com/rehypejs/rehype-autolink-headings#optionsbehavior) afin d'ajouter la balise d'ancrage après le texte du titre.
+L'exemple ci-dessous ajoute [l'option de titres au plugin `remarkToc`](https://github.com/remarkjs/remark-toc#options) pour modifier l'emplacement de la table des matières, et [l'option `behavior` au plugin `rehype-autolink-headings`](https://github.com/rehypejs/rehype-autolink-headings#options) afin d'ajouter la balise d'ancrage après le texte du titre.
 
 ```js title="astro.config.mjs"
 import remarkToc from 'remark-toc';
@@ -468,10 +466,10 @@ export default {
 ### Modifier le frontmatter par un programme
 
 :::note
-Si vous utilisez des [collections de contenus](/fr/guides/content-collections/), veuillez consulter ["Modifier le frontmatter avec Remark "](/fr/guides/content-collections/#modifier-le-frontmatter-avec-remark).
+Si vous utilisez des [collections de contenus](/fr/guides/content-collections/), veuillez consulter ["Modifier le frontmatter avec Remark ](/fr/guides/content-collections/#modifier-le-frontmatter-avec-remark).
 :::
 
-Vous pouvez ajouter des propriétés frontmatter à tout vos fichiers Markdown et MDX en utilisant un [plugin remark ou rehype](#plugins-markdown).
+Vous pouvez ajouter des propriétés frontmatter à tous vos fichiers Markdown et MDX en utilisant un [plugin remark ou rehype](#plugins-markdown).
 
 <Steps>
 1. Ajoutez un `customProperty` à la propriété `data.astro.frontmatter` de l'argument `file` de votre plugin :
@@ -526,7 +524,7 @@ Désormais, chaque fichier Markdown ou MDX contiendra `customProperty` dans son 
 
 ### Extension de la configuration Markdown à partir de MDX
 
-L'intégration MDX d'Astro étend par défaut la [configuration Markdown existante de votre projet](/fr/reference/configuration-reference/#markdown-options). Pour remplacer des options individuelles, vous pouvez spécifier leur équivalent dans votre configuration MDX.
+L'intégration MDX d'Astro étend par défaut la [configuration Markdown existante de votre projet](/fr/reference/configuration-reference/#options-de-markdown). Pour remplacer des options individuelles, vous pouvez spécifier leur équivalent dans votre configuration MDX.
 
 L'exemple suivant désactive le Markdown de Github et applique un panel différent de plugins remark pour les fichiers MDX :
 
@@ -603,6 +601,10 @@ export default defineConfig({
         light: 'github-light',
         dark: 'github-dark',
       },
+      // Désactivez les couleurs par défaut
+      // https://shiki.style/guide/dual-themes#without-default-color
+      // (Ajouté dans la v4.12.0)
+      defaultColor: false,
       // Ajouter des langues personnalisées
       // Note : Shiki intègre d'innombrables langages, y compris le .astro !
       // https://shiki.style/languages
@@ -618,7 +620,7 @@ export default defineConfig({
 ```
 
 :::note[Personnalisation des thèmes Shiki]
-Les blocs de code Astro sont stylisés en utilisant la classe `.astro-code`. Lorsque vous suivez la documentation de Shiki (par exemple pour [personnaliser un thème double clair/foncé ou de multiples thèmes](https://shiki.style/guide/dual-themes#query-based-dark-mode)), assurez-vous de remplacer la classe `.shiki` dans les exemples par `.astro-code`
+Les blocs de code Astro sont stylisés en utilisant la classe `.astro-code`. Lorsque vous suivez la documentation de Shiki (par exemple pour [personnaliser un thème double clair/foncé ou de multiples thèmes](https://shiki.style/guide/dual-themes#query-based-dark-mode)), assurez-vous de remplacer la classe `.shiki` dans les exemples par `.astro-code`.
 :::
 
 #### Ajouter votre propre thème
