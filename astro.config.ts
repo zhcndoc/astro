@@ -18,9 +18,6 @@ const site = NETLIFY_PREVIEW_SITE || 'https://astro.zhcndoc.com/';
 
 // https://astro.build/config
 export default defineConfig({
-	devToolbar: {
-    enabled: false
-  },
 	site,
 	integrations: [
 		starlight({
@@ -28,7 +25,6 @@ export default defineConfig({
 			customCss: ['./src/styles/custom.css'],
 			components: {
 				EditLink: './src/components/starlight/EditLink.astro',
-				Footer: './src/components/starlight/Footer.astro',
 				Head: './src/components/starlight/Head.astro',
 				Hero: './src/components/starlight/Hero.astro',
 				MarkdownContent: './src/components/starlight/MarkdownContent.astro',
