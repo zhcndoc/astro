@@ -2,7 +2,7 @@ import { getCollection } from 'astro:content';
 import { isEnglishEntry, isKoreanEntry, isRecipeEntry, isTutorialEntry } from './content/config';
 
 export const allPages = await getCollection('docs', (entry) => {
-	if (true) {
+	if (import.meta.env.PUBLIC_TWO_LANG) {
 		// Build for two languages only to speed up Astro's smoke tests
 		return isEnglishEntry(entry) || isKoreanEntry(entry);
 	} else {
