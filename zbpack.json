@@ -1,0 +1,6 @@
+{
+  "build_command": "cd /app && pnpm run build && cp -r /app/dist /src/dist",
+  "cache_dependencies": false,
+  "install_command": "cd / && git clone https://github.com/zhcndoc/astro.git /app && cd /app && pnpm install",
+  "output_dir": "dist"
+}
