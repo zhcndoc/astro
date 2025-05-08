@@ -130,7 +130,7 @@ export function createIsLangEntry(lang: string) {
 }
 
 export const isEnglishEntry = createIsLangEntry('en');
-export const isKoreanEntry = createIsLangEntry('ko');
+export const isChineseEntry = createIsLangEntry('zh-cn');
 
 export const collections = {
 	docs: defineCollection({
