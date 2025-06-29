@@ -1,10 +1,9 @@
 ---
 import logo from '~/assets/astro-logo.svg?raw';
 import docs from '~/assets/docs.svg?raw';
-import type { Props } from '@astrojs/starlight/props';
 
 const main = '/';
-const self = '/' + (Astro.props.locale || 'zh-cn') + '/getting-started/';
+const self = '/' + (Astro.locals.starlightRoute.locale || 'zh-cn') + '/getting-started/';
 ---
 
 <span class="site-title sl-flex">
