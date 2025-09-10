@@ -603,7 +603,7 @@ const { afficherAlerte } = Astro.props;
 }
 ```
 
-<ReadMore>En savoir plus sur [l'utilisation des balises `script` dans Astro](/fr/guides/client-side-scripts/#utilisation-de-script-dans-astro).</ReadMore>
+<ReadMore>En savoir plus sur [l'utilisation des balises `script` dans Astro](/fr/guides/client-side-scripts/).</ReadMore>
 
 ## Changements non rétrocompatibles
 
@@ -723,7 +723,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 	if (payload) {
 		const { actionName, actionResult } = payload.json();
 		setActionResult(actionName, actionResult);
-		context.cookies.delete('ACTION_PAYLOAD');
+		context.cookies.delete('ACTION_PAYLOAD', { path: '/' });
 		return next();
 	}
 
@@ -735,6 +735,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
 		context.cookies.set('ACTION_PAYLOAD', {
 			actionName: action.name,
 			actionResult: serializeActionResult(actionResult),
+		}, {
+			path: '/',
+			httpOnly: true,
+			sameSite: 'lax',
+			maxAge: 60
 		});
 
 		if (actionResult.error) {
@@ -926,7 +931,7 @@ Auparavant, les valeurs étaient incorrectement résolues :
 
 Si vous utilisiez les anciens chemins de compilation, assurez-vous que le code de votre projet est mis à jour avec les nouveaux chemins de compilation.
 
-<ReadMore>En savoir plus sur [les options de configuration de compilation (`build`) dans Astro](/fr/reference/configuration-reference/#options-de-construction).</ReadMore>
+<ReadMore>En savoir plus sur [les options de configuration de compilation (`build`) dans Astro](/fr/reference/configuration-reference/#options-de-compilation).</ReadMore>
 
 ### Modifié : Les dépendances JS dans le fichier de configuration ne sont plus traitées par Vite.
 
