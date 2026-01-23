@@ -22,7 +22,7 @@ export const localesConfig = {
 } satisfies StarlightUserConfig['locales'];
 
 /** The only two languages to build to speed up Astro's smoke tests. */
-const twoLanguages: (keyof typeof localesConfig)[] = ['en', 'ko'];
+const twoLanguages: (keyof typeof localesConfig)[] = ['en', 'zh-cn'];
 
 /** Starlight i18n configuration used for Astro's smoke tests. */
 export const twoLocalesConfig = Object.fromEntries(

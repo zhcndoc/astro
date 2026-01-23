@@ -2,7 +2,7 @@ import type { GetStaticPaths } from 'astro';
 import { localesConfig, twoLocalesConfig } from '../config/locales';
 
 /** The current Starlight i18n configuration depending if we are running smoke tests or not. */
-const currentLocalesConfig = process.env.PUBLIC_TWO_LANG ? twoLocalesConfig : localesConfig;
+const currentLocalesConfig = process.env.PUBLIC_TWO_LANG ? localesConfig : twoLocalesConfig;
 
 /** An array of all language currently configured. */
 export const allLanguages = Object.keys(currentLocalesConfig);
