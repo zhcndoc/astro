@@ -7,15 +7,6 @@ const { entry, toc } = Astro.locals.starlightRoute;
 const isTutorial = entry.id.split('/')[1] === 'tutorial';
 ---
 
-<div
-	class="wwads-cn wwads-vertical"
-	data-id="354"
-	style={{
-		maxWidth: '200px',
-		marginBottom: '16px',
-		marginTop: '0px',
-	}}
-></div>
 {
 	toc && (
 		<starlight-toc data-min-h={toc.minHeadingLevel} data-max-h={toc.maxHeadingLevel}>
@@ -30,6 +21,15 @@ const isTutorial = entry.id.split('/')[1] === 'tutorial';
 		</starlight-toc>
 	)
 }
+<div
+	class="wwads-cn wwads-vertical"
+	data-id="354"
+	style={{
+		maxWidth: '200px',
+		marginBottom: '16px',
+		marginTop: '16px',
+	}}
+></div>
 
 <script src="../../../node_modules/@astrojs/starlight/components/TableOfContents/starlight-toc"
 ></script>
