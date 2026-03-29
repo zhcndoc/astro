@@ -55,7 +55,6 @@ En plus des éditeurs locaux, Astro fonctionne également bien dans les éditeur
 
 - [StackBlitz](https://stackblitz.com/) et [CodeSandbox](https://codesandbox.io/) - des éditeurs en ligne qui s'exécutent dans votre navigateur, avec prise en charge intégrée de la coloration syntaxique pour les fichiers `.astro`. Aucune installation ou configuration n'est nécessaire !
 - [GitHub.dev](https://github.dev/) - vous permet d'installer l'extension Astro pour VS Code en tant qu'[extension web](https://code.visualstudio.com/api/extension-guides/web-extensions), ce qui ne vous donne accès qu'à certaines des fonctionnalités complètes de l'extension. Actuellement, seule la coloration syntaxique est prise en charge.
-- [Firebase Studio](https://firebase.studio/) - un environnement de développement complet dans le cloud qui peut installer l'extension officielle Astro pour VS Code depuis Open VSX.
 
 ## Autres outils
 
@@ -117,7 +116,7 @@ Pour ajouter la prise en charge du formatage des fichiers `.astro` en dehors de 
           },
         },
       ],
-    };
+    }
     ```
 
 3. En option, installez d’autres modules d'extension Prettier pour votre projet et ajoutez-les au fichier de configuration. Ces modules d'extension supplémentaires devront peut-être être listés dans un ordre spécifique. Par exemple, si vous utilisez Tailwind, `prettier-plugin-tailwindcss` doit être [le dernier module d'extension Prettier dans le tableau des modules d'extension](https://github.com/tailwindlabs/prettier-plugin-tailwindcss#compatibility-with-other-prettier-plugins).
