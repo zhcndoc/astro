@@ -1,0 +1,218 @@
+---
+title: HackMD 与 Astro
+description: 使用 HackMD 作为 CMS 向你的 Astro 项目添加内容
+sidebar:
+  label: HackMD
+type: cms
+stub: false
+logo: hackmd
+i18nReady: true
+---
+
+import { FileTree } from '@astrojs/starlight/components';
+import PackageManagerTabs from '~/components/tabs/PackageManagerTabs.astro';
+import ReadMore from '~/components/ReadMore.astro';
+
+[HackMD](https://hackmd.io/) 是一个协作式 Markdown 编辑器和发布平台。你可以使用它的 API 在 HackMD 中管理内容，并将内容显示在 Astro 项目中。
+
+## 与 Astro 集成
+
+本指南使用官方的 [`@hackmd/api`](https://github.com/hackmdio/api-client) 客户端获取笔记，并使用 [`markdown-it`](https://github.com/markdown-it/markdown-it) 渲染 Markdown 内容。
+
+### 前置条件
+
+开始之前，你需要准备：
+
+1. **一个 Astro 项目**：如果你还没有 Astro 项目，[安装指南](/zh-cn/install-and-setup/)将帮助你快速开始。
+2. **一个 HackMD 账号**：你可以[免费注册](https://hackmd.io/join)。
+3. **一个 HackMD 访问令牌**：从你的 [HackMD 设置](https://hackmd.io/settings#api)的 API 部分创建令牌。
+4. **至少一篇公开可读的笔记**：将笔记的读取权限设置为**所有人**，这样示例才能安全地在你的网站上发布它。
+
+### 设置凭证
+
+在项目根目录创建一个 `.env` 文件，并添加 HackMD 访问令牌：
+
+```ini title=".env"
+HACKMD_API_ACCESS_TOKEN=<YOUR_ACCESS_TOKEN>
+```
+
+不要为这个变量添加 `PUBLIC_` 前缀。这样可以让令牌仅在服务器端代码中可用，避免 Astro 将它暴露给浏览器。
+
+<ReadMore>阅读 Astro 中关于[环境变量](/zh-cn/guides/environment-variables/)和 `.env` 文件的更多信息。</ReadMore>
+
+### 安装依赖
+
+安装 HackMD API 客户端和 Markdown 渲染器：
+
+<PackageManagerTabs>
+  <Fragment slot="npm">
+  ```shell
+  npm install @hackmd/api markdown-it
+  ```
+  </Fragment>
+  <Fragment slot="pnpm">
+  ```shell
+  pnpm add @hackmd/api markdown-it
+  ```
+  </Fragment>
+  <Fragment slot="yarn">
+  ```shell
+  yarn add @hackmd/api markdown-it
+  ```
+  </Fragment>
+</PackageManagerTabs>
+
+### 配置 HackMD
+
+在新的 `src/lib/` 目录中创建 `hackmd.ts` 文件。这个文件会初始化 API 客户端、渲染 Markdown，并为每篇笔记创建便于放入 URL 的标识符：
+
+```ts title="src/lib/hackmd.ts"
+import { API } from '@hackmd/api';
+import MarkdownIt from 'markdown-it';
+
+export const client = new API(import.meta.env.HACKMD_API_ACCESS_TOKEN);
+
+const md = new MarkdownIt({
+  html: false,
+  linkify: true,
+  typographer: true,
+});
+
+export function renderMarkdown(content: string) {
+  return md.render(content);
+}
+
+export function getNoteSlug(note: { permalink: string | null; shortId: string }) {
+  return note.permalink ?? note.shortId;
+}
+```
+
+`html: false` 选项会阻止笔记中的原始 HTML 直接传入生成的页面。标准 Markdown 仍然会被渲染为 HTML。
+
+你的项目将使用以下文件：
+
+<FileTree title="项目结构">
+- src/
+  - lib/
+    - **hackmd.ts**
+  - pages/
+    - **index.astro**
+    - notes/
+      - **[slug].astro**
+- **.env**
+- astro.config.mjs
+- package.json
+</FileTree>
+
+## 使用 Astro 和 HackMD 创建博客
+
+这个示例会创建一个公开可读笔记的索引，并为每篇笔记生成一个静态页面。
+
+### 显示笔记列表
+
+在 `src/pages/index.astro` 中使用 `getNoteList()` 获取笔记。过滤结果，只将读取权限为 `guest` 的笔记包含在公开网站中：
+
+```astro title="src/pages/index.astro"
+---
+import { client, getNoteSlug } from '../lib/hackmd';
+
+const notes = await client.getNoteList();
+const publicNotes = notes.filter((note) => note.readPermission === 'guest');
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Astro + HackMD</title>
+  </head>
+  <body>
+    <main>
+      <h1>My HackMD notes</h1>
+      <ul>
+        {
+          publicNotes.map((note) => (
+            <li>
+              <a href={`/notes/${getNoteSlug(note)}/`}>{note.title}</a>
+            </li>
+          ))
+        }
+      </ul>
+    </main>
+  </body>
+</html>
+```
+
+:::caution
+访问令牌可以读取你账号中的私有笔记。除非你有意将其他笔记包含在生成的网站中，否则请保留 `guest` 权限过滤器。
+:::
+
+### 生成笔记页面
+
+创建 `src/pages/notes/[slug].astro`，为每篇公开笔记生成静态页面。笔记列表提供路由和笔记 ID，然后 `getNote()` 获取该页面的完整 Markdown 内容：
+
+```astro title="src/pages/notes/[slug].astro"
+---
+import { client, getNoteSlug, renderMarkdown } from '../../lib/hackmd';
+
+export async function getStaticPaths() {
+  const notes = await client.getNoteList();
+
+  return notes
+    .filter((note) => note.readPermission === 'guest')
+    .map((note) => ({
+      params: { slug: getNoteSlug(note) },
+      props: { noteId: note.id },
+    }));
+}
+
+interface Props {
+  noteId: string;
+}
+
+const { noteId } = Astro.props;
+const note = await client.getNote(noteId);
+const content = renderMarkdown(note.content);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{note.title}</title>
+  </head>
+  <body>
+    <main>
+      <article>
+        <Fragment set:html={content} />
+      </article>
+    </main>
+  </body>
+</html>
+```
+
+:::caution
+Astro 的 [`set:html` 指令](/zh-cn/reference/directives-reference/#sethtml) 会插入 HTML 字符串而不进行转义。本示例先使用禁用原始 HTML 的 `markdown-it` 处理笔记。如果你为可信作者启用 `html` 选项，请在将渲染结果传递给 `set:html` 之前进行清理。
+:::
+
+### 支持更多 HackMD 语法
+
+HackMD 使用带有扩展的 `markdown-it`，支持任务列表、脚注、容器和目录等功能。上面的最小配置可以处理标准 Markdown。只安装你的笔记所需的 [`markdown-it` 插件](https://www.npmjs.com/search?q=keywords%3Amarkdown-it-plugin)。
+
+### 发布你的网站
+
+要部署你的网站，请访问我们的[部署指南](/zh-cn/guides/deploy/)，并按照你选择的托管提供商的说明进行操作。
+
+如果你的项目使用 Astro 的默认静态模式，则必须重新构建才能发布 HackMD 中的更改。如果你的托管提供商支持，可以使用它的 webhook 功能，在 HackMD 发送 [webhook 事件](https://hackmd.io/@docs/webhooks-events)时自动触发新的构建。
+
+## 官方资源
+
+- [HackMD API 文档](https://hackmd.io/@docs/developer-portal)
+- [HackMD OpenAPI 文档](https://api.hackmd.io/v1/docs)
+
+## 社区资源
+
+- [`daily-oops`](https://github.com/Yukaii/daily-oops)：一个使用 HackMD 作为 CMS 的博客
+- [`astro-hackmd`](https://github.com/EastSun5566/astro-hackmd)：一个使用 HackMD 作为 CMS 的最小 Astro 网站

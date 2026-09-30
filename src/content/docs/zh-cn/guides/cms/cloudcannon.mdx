@@ -165,13 +165,16 @@ const posts = await getCollection('blog');
 
 ### 显示单个条目
 
-要显示单个文章的内容，你可以导入并使用 `<Content />` 组件将内容 [渲染为 HTML](/zh-cn/guides/content-collections/#渲染正文内容)：
+要显示单个文章的内容，你可以使用 `<Content />` 组件，通过 [`render()`](/zh-cn/guides/content-collections/#渲染正文内容) 将内容渲染为 HTML：
 
-```astro title="src/pages/blog/my-first-post.astro" {4-5}
+```astro title="src/pages/blog/my-first-post.astro" {8,14} ", render"
 ---
 import { getEntry, render } from 'astro:content';
 
 const entry = await getEntry('blog', 'my-first-post');
+if (!entry) {
+  throw new Error('Blog post not found');
+}
 const { Content } = await render(entry);
 ---
 

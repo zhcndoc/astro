@@ -1,16 +1,14 @@
 ---
-// import ScrimbaAd from './ScrimbaAd.astro';
-// import LearnAstroAd from './LearnAstroAd.astro';
-// import AstroJobsAd from './AstroJobsAd.astro';
+import ScrimbaAd from './ScrimbaAd.astro';
+import LearnAstroAd from './LearnAstroAd.astro';
 
-// const ads = [
-// 	{ component: ScrimbaAd, weight: 0.4 },
-// 	{ component: LearnAstroAd, weight: 0.4 },
-// 	{ component: AstroJobsAd, weight: 0.2 },
-// ];
-// const totalWeight = ads.reduce((sum, ad) => sum + ad.weight, 0);
-// let random = Math.random() * totalWeight;
-// const Ad = ads.find((ad) => (random -= ad.weight) < 0)!.component;
+const ads = [
+	{ component: ScrimbaAd, weight: 0.5 },
+	{ component: LearnAstroAd, weight: 0.5 },
+];
+const totalWeight = ads.reduce((sum, ad) => sum + ad.weight, 0);
+let random = Math.random() * totalWeight;
+const Ad = ads.find((ad) => (random -= ad.weight) < 0)!.component;
 ---
 
-<!-- <Ad /> -->
+<Ad />

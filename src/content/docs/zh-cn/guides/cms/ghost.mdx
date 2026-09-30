@@ -181,7 +181,7 @@ const posts = await ghostClient.posts
     <body>
 
         {
-            posts.map((post) => (
+            posts?.map((post) => (
                 <a href={`/post/${post.slug}`}>
                     <h1> {post.title} </h1>
                 </a>
@@ -222,7 +222,7 @@ export async function getStaticPaths() {
             console.error(err);
         });
 
-    return posts.map((post) => {
+    return posts?.map((post) => {
         return {
             params: {
                 slug: post.slug,
@@ -251,7 +251,7 @@ export async function getStaticPaths() {
         .catch((err) => {
             console.error(err);
         });
-    return posts.map((post) => {
+    return posts?.map((post) => {
         return {
             params: {
                 slug: post.slug,
@@ -293,7 +293,7 @@ const { post } = Astro.props;
   <LinkCard title="Ghost CMS 搭配 Astro 教程" href="https://matthiesen.xyz/blog/astro-ghostcms" />
   <LinkCard title="Astro + Ghost + Tailwind CSS" href="https://andr.ec/posts/astro-ghost-blog/" />
   <LinkCard title="使用 Astro 和 Ghost 构建企业网站" href="https://artabric.com/post/building-a-corporate-site-with-astro-and-ghost/" />
-  <LinkCard title="`astro-starter-ghost`" href="https://github.com/PhilDL/astro-starter-ghost" />
+  <LinkCard title="astro-starter-ghost" href="https://github.com/PhilDL/astro-starter-ghost" />
 
 </CardGrid>
 

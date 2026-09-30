@@ -1,0 +1,502 @@
+---
+title: Astro Container API（实验性）
+sidebar:
+  label: Container API（实验性）
+i18nReady: true
+---
+import Since from '~/components/Since.astro'
+
+<p><Since v="4.9.0" /></p>
+
+Container API 允许你隔离渲染 Astro 组件。
+
+这个实验性的服务端 API 解锁了多种潜在的未来用途，但目前主要用于在 `vite` 环境（例如 `vitest`）中[测试 `.astro` 组件输出](/zh-cn/guides/testing/#vitest-and-container-api)。
+
+它还允许你[手动加载渲染脚本](#手动添加渲染器)，以便在按需渲染的页面或 `vite` 之外的其他“外壳”环境（例如 PHP 或 Elixir 应用）中创建容器。
+
+这个 API 允许你[创建新容器](#create)，并渲染 Astro 组件，返回[字符串](#rendertostring)或 [`Response`](#rendertoresponse)。
+
+这个 API 仍处于实验阶段，即使是[次版本或补丁版本](/zh-cn/upgrade-astro/#语义化版本控制)也可能发生破坏性变化。请查阅 [Astro 更新日志](https://github.com/withastro/astro/blob/main/packages/astro/CHANGELOG.md)了解变化。此页面始终会更新为最新 Astro 版本的当前信息。
+
+## `create()`
+
+<p>
+
+**类型：** `(options?: AstroContainerOptions) => Promise<experimental_AstroContainer>`
+</p>
+
+创建一个新的容器实例。
+
+```js
+import { experimental_AstroContainer } from "astro/container";
+
+const container = await experimental_AstroContainer.create();
+```
+
+它接受一个包含以下选项的对象：
+
+
+```ts
+export type AstroContainerOptions = {
+  streaming?: boolean;
+  renderers?: AddServerRenderer[];
+};
+
+export type AddServerRenderer =
+	| {
+			renderer: NamedSSRLoadedRendererValue;
+			name: never;
+	  }
+	| {
+			renderer: SSRLoadedRendererValue;
+			name: string;
+	  };
+```
+
+### `streaming` 选项
+
+<p>
+
+**类型：** `boolean`<br />
+**默认值：** `false`
+</p>
+
+启用使用 [HTML 流式传输](/zh-cn/guides/on-demand-rendering/#html-流式传输)渲染组件。
+
+### `renderers` 选项
+
+<p>
+
+**类型：** `AddServerRenderer[]`<br />
+**默认值：** `[]`
+</p>
+
+组件所需的已加载客户端渲染器列表。如果你的 `.astro` 组件渲染了任何 [UI 框架组件](/zh-cn/guides/framework-components/)或使用官方 Astro 集成的 MDX（例如 React、Vue 等），请使用此选项。
+
+对于静态应用，或容器不会在运行时调用的情况（例如使用 `vitest` 测试），可以通过 Container API 自动添加渲染器。
+
+对于[按需渲染的应用](/zh-cn/guides/on-demand-rendering/)，或容器在运行时或其他“外壳”环境（例如 PHP、Ruby、Java 等）中调用的情况，必须手动导入渲染器。
+
+#### 通过 Container API 添加渲染器
+
+对于每个官方 Astro 集成，从其专用的 `container-renderer` 入口点导入并使用 `getContainerRenderer()` 辅助函数，以暴露客户端和服务端渲染脚本。这些入口点适用于 `@astrojs/react`、`@astrojs/preact`、`@astrojs/solid-js`、`@astrojs/svelte`、`@astrojs/vue` 和 `@astrojs/mdx`。
+
+对于 `@astrojs` npm 组织之外的渲染器包，请在其文档中查找 `getContainerRenderer()` 或类似的函数。
+
+使用 `vite`（`vitest`、Astro 集成等）时，渲染器通过虚拟模块 `astro:container` 中的 `loadRenderers()` 函数加载。
+
+:::caution
+在 `vite` 之外使用，或用于按需渲染时，你必须[手动加载渲染器](#手动添加渲染器)。
+:::
+
+以下示例提供了渲染同时包含 React 组件和 Svelte 组件的 Astro 组件所需的对象：
+
+```js
+import { experimental_AstroContainer } from "astro/container";
+import { getContainerRenderer as reactContainerRenderer } from "@astrojs/react/container-renderer";
+import { getContainerRenderer as svelteContainerRenderer } from "@astrojs/svelte/container-renderer";
+import { loadRenderers } from "astro:container";
+import ReactWrapper from "./ReactWrapper.astro";
+
+const renderers = await loadRenderers([
+  reactContainerRenderer(),
+  svelteContainerRenderer(),
+]);
+const container = await experimental_AstroContainer.create({
+  renderers,
+});
+const result = await container.renderToString(ReactWrapper);
+```
+
+#### 手动添加渲染器
+
+当容器在运行时或其他“外壳”环境中调用时，`astro:container` 虚拟模块的辅助函数不可用。你必须手动导入必要的服务端和客户端渲染器，并使用 `addServerRenderer` 和 `addClientRenderer` 将它们存储在容器中。
+
+构建项目需要服务端渲染器，且必须为使用的每个框架将其存储在容器中。对于使用 [`client:*` 指令](/zh-cn/reference/directives-reference/#client-directives)进行客户端水合的组件，还需要客户端渲染器。
+
+每个框架只需要一条 import 语句。导入渲染器会让服务端和客户端渲染器都可用于你的容器。但是，**必须先将服务端渲染器添加到容器，再添加客户端渲染器**。这样可以先渲染整个容器，然后再为交互式组件进行水合。
+
+以下示例手动导入必要的服务端渲染器，以便显示静态 Vue 组件和 `.mdx` 页面。同时，它还为交互式 React 组件添加了服务端和客户端渲染器。
+
+```js
+import { experimental_AstroContainer } from "astro/container";
+import reactRenderer from "@astrojs/react/server.js";
+import vueRenderer from "@astrojs/vue/server.js";
+import mdxRenderer from "@astrojs/mdx/server.js";
+
+const container = await experimental_AstroContainer.create();
+container.addServerRenderer({ renderer: vueRenderer });
+container.addServerRenderer({ renderer: mdxRenderer });
+
+container.addServerRenderer({ renderer: reactRenderer });
+container.addClientRenderer({
+  name: "@astrojs/react",
+  entrypoint: "@astrojs/react/client.js",
+});
+```
+
+## `renderToString()`
+
+<p>
+
+**类型：** <code>(component: AstroComponentFactory; options?: <a href="#rendering-options">ContainerRenderOptions</a>) => Promise&lt;string&gt;</code>
+</p>
+
+此函数在容器中渲染指定的组件。它接收一个 Astro 组件作为参数，并返回一个表示 Astro 组件所渲染 HTML/内容的字符串。
+
+```js title="tests/Card.test.js"
+import { experimental_AstroContainer } from "astro/container";
+import Card from "../src/components/Card.astro";
+
+const container = await experimental_AstroContainer.create();
+const result = await container.renderToString(Card);
+```
+
+在底层，此函数会调用 [`renderToResponse()`](#rendertoresponse) 和 `Response.text()`。
+
+它还接受一个对象作为第二个参数，该对象可以包含[多个选项](#rendering-options)。
+
+## `renderToResponse()`
+
+<p>
+
+**类型：** <code>(component: AstroComponentFactory; options?: <a href="#rendering-options">ContainerRenderOptions</a>) => Promise&lt;Response&gt;</code>
+</p>
+
+它会渲染一个组件，并返回 `Response` 对象。
+
+```js title="tests/Card.test.js"
+import { experimental_AstroContainer } from "astro/container";
+import Card from "../src/components/Card.astro";
+
+const container = await experimental_AstroContainer.create();
+const result = await container.renderToResponse(Card);
+```
+
+它还接受一个对象作为第二个参数，该对象可以包含[多个选项](#rendering-options)。
+
+## `renderComponent()`
+
+<p>
+
+  **类型：** <code>(component: AstroComponentFactory; options?: Omit\<<a href="#rendering-options">ContainerRenderOptions</a>, 'routeType'\>) => Promise&lt;string&gt;</code><br />
+  <Since v="7.3.5" />
+</p>
+
+返回组件 HTML（包括其脚本和样式）的函数。它接收通过 `?container` 查询字符串导入的 Astro 组件作为参数。
+
+容器只会渲染内联的脚本和样式。通过任何解析方式导入的资源（例如 `@import`、`import ... from`）不会被渲染。
+
+```js title="tests/Card.test.js" ins="?container"
+import { experimental_AstroContainer } from "astro/container";
+import Card from "../src/components/Card.astro?container";
+
+const container = await experimental_AstroContainer.create();
+const result = await container.renderComponent(Card);
+
+```
+
+省略 `?container` 查询字符串时，输出将与 [`renderToString()`](#rendertostring) 相同。
+
+## 渲染选项
+
+[`renderToResponse()`](#rendertoresponse) 和 [`renderToString()`](#rendertostring) 都接受一个对象作为第二个参数：
+
+```ts
+export type ContainerRenderOptions = {
+	slots?: Record<string, any>;
+	props?: Record<string, unknown>;
+	request?: Request;
+	params?: Record<string, string | undefined>;
+	locals?: App.Locals;
+	routeType?: RouteType;
+	partial?: boolean;
+};
+```
+
+可以将这些可选值传递给渲染函数，为 Astro 组件正确渲染提供必要的额外信息。
+
+### `slots`
+
+<p>
+
+**类型**：`Record<string, any>`
+</p>
+
+用于传递要与 [`<slots>`](/zh-cn/basics/astro-components/#slots) 一起渲染的内容的选项。
+
+如果你的 Astro 组件渲染一个默认插槽，请传入以 `default` 为键的对象：
+
+```js title="tests/Card.test.js"
+import { experimental_AstroContainer } from "astro/container";
+import Card from "../src/components/Card.astro";
+
+const container = await experimental_AstroContainer.create();
+const result = await container.renderToString(Card, {
+  slots: { default: "Some value" },
+});
+```
+
+如果你的组件渲染命名插槽，请使用插槽名称作为对象键：
+
+```astro title="src/components/Card.astro"
+---
+---
+<div>
+  <slot name="header" />
+  <slot name="footer" />
+</div>
+```
+
+```js title="tests/Card.test.js"
+import { experimental_AstroContainer } from "astro/container";
+import Card from "../src/components/Card.astro";
+
+const container = await experimental_AstroContainer.create();
+const result = await container.renderToString(Card, {
+  slots: {
+    header: "Header content",
+    footer: "Footer",
+  },
+});
+```
+
+你还可以级联渲染组件：
+
+```astro title="src/components/Card.astro"
+---
+---
+<div>
+  <slot name="header" />
+  <slot name="footer" />
+</div>
+```
+
+```js title="tests/Card.test.js"
+import { experimental_AstroContainer } from "astro/container";
+import Card from "../src/components/Card.astro";
+import CardHeader from "../src/components/CardHeader.astro";
+import CardFooter from "../src/components/CardFooter.astro";
+
+const container = await experimental_AstroContainer.create();
+const result = await container.renderToString(Card, {
+  slots: {
+    header: await container.renderToString(CardHeader),
+    footer: await container.renderToString(CardFooter),
+  },
+});
+```
+
+### `props` 选项
+
+<p>
+
+**类型**：`Record<string, unknown>`
+</p>
+
+用于向 Astro 组件传递[属性](/zh-cn/basics/astro-components/#组件属性)的选项。
+
+```js title="tests/Card.test.js"
+import { experimental_AstroContainer } from "astro/container";
+import Card from "../src/components/Card.astro";
+
+const container = await experimental_AstroContainer.create();
+const result = await container.renderToString(Card, {
+  props: { name: "Hello, world!" },
+});
+```
+
+```astro title="src/components/Card.astro"
+---
+// For TypeScript support
+interface Props {
+  name: string;
+};
+
+const { name } = Astro.props;
+---
+<div>
+  {name}
+</div>
+```
+
+### `request` 选项
+
+<p>
+
+**类型**：`Request`
+</p>
+
+用于传递包含组件将要渲染的路径/URL 信息的 `Request` 的选项。
+
+当组件需要读取 `Astro.url` 或 `Astro.request` 等信息时使用此选项。
+
+你还可以注入可能的标头或 Cookie。
+
+```js title="tests/Card.test.js"
+import { experimental_AstroContainer } from "astro/container";
+import Card from "../src/components/Card.astro";
+
+const container = await experimental_AstroContainer.create();
+const result = await container.renderToString(Card, {
+  request: new Request("https://example.com/blog", {
+    headers: {
+      "x-some-secret-header": "test-value",
+    },
+  }),
+});
+```
+
+### `params` 选项
+
+<p>
+
+**类型**：`Record<string, string | undefined>`
+</p>
+
+用于向负责[生成动态路由](/zh-cn/guides/routing/#动态路由)的 Astro 组件传递路径参数信息的对象。
+
+当组件需要 `Astro.params` 的值以动态生成单个路由时使用此选项。
+
+```astro title="src/pages/[locale]/[slug].astro"
+---
+const { locale, slug } = Astro.params;
+---
+<div></div>
+```
+
+```js title="tests/LocaleSlug.test.js"
+import { experimental_AstroContainer } from "astro/container";
+import LocaleSlug from "../src/pages/[locale]/[slug].astro";
+
+const container = await experimental_AstroContainer.create();
+const result = await container.renderToString(LocaleSlug, {
+  params: {
+    locale: "en",
+    slug: "getting-started",
+  },
+});
+```
+
+### `locals` 选项
+
+<p>
+
+**类型**：`App.Locals`
+</p>
+
+用于传递 [`Astro.locals`](/zh-cn/reference/api-reference/#locals) 信息以渲染组件的选项。
+
+当组件需要请求生命周期中存储的信息（例如登录状态）才能进行渲染时，使用此选项。
+
+```astro title="src/components/Card.astro"
+---
+const { checkAuth } = Astro.locals;
+const isAuthenticated = checkAuth();
+---
+
+{isAuthenticated ? <span>You're in</span> : <span>You're out</span>}
+```
+
+```js title="tests/Card.test.js"
+import { experimental_AstroContainer } from "astro/container";
+import Card from "../src/components/Card.astro";
+import test from "node:test";
+
+const container = await experimental_AstroContainer.create();
+
+test("User is in", async () => {
+  const result = await container.renderToString(Card, {
+    locals: {
+      checkAuth() {
+        return true;
+      },
+    },
+  });
+
+  // assert result contains "You're in"
+});
+
+test("User is out", async () => {
+  const result = await container.renderToString(Card, {
+    locals: {
+      checkAuth() {
+        return false;
+      },
+    },
+  });
+
+  // assert result contains "You're out"
+});
+```
+
+### `routeType` 选项
+
+<p>
+
+**类型**：`RouteType`
+</p>
+
+使用 `renderToResponse()` 时可用的选项，用于指定你正在渲染一个[端点](/zh-cn/guides/endpoints/)：
+
+```js
+container.renderToString(Endpoint, { routeType: "endpoint" });
+```
+
+```js title="tests/endpoint.test.js"
+import { experimental_AstroContainer } from "astro/container";
+import * as Endpoint from "../src/pages/api/endpoint.js";
+
+const container = await experimental_AstroContainer.create();
+const response = await container.renderToResponse(Endpoint, {
+  routeType: "endpoint",
+});
+const json = await response.json();
+```
+
+要测试端点的 `POST`、`PATCH` 等方法，请使用 `request` 选项调用正确的函数：
+
+```js title="src/pages/api/endpoint.js"
+export function GET() {}
+
+// need to test this
+export function POST() {}
+```
+
+```js title="tests/endpoint.test.js" ins={7-9}
+import { experimental_AstroContainer } from "astro/container";
+import * as Endpoint from "../src/pages/api/endpoint.js";
+
+const container = await experimental_AstroContainer.create();
+const response = await container.renderToResponse(Endpoint, {
+  routeType: "endpoint",
+  request: new Request("https://example.com", {
+    method: "POST", // Specify POST method for testing
+  }),
+});
+const json = await response.json();
+```
+
+### `partial` 选项
+
+<p>
+
+**类型：** `boolean`<br />
+**默认值：** `true`<br/>
+<Since v="4.16.6" />
+</p>
+
+Container API 是否将组件渲染为[页面局部内容](/zh-cn/basics/astro-pages/#页面局部内容)。默认的 `true` 设置会隔离渲染组件，不包含完整的页面外壳。
+
+要将组件渲染为完整的 Astro 页面（包括 `<!DOCTYPE html>`），可以将 `partial` 设置为 `false` 来退出此行为：
+
+```js title="tests/Blog.test.js" ins={6}
+import { experimental_AstroContainer } from "astro/container";
+import Blog from "../src/pages/Blog.astro";
+
+const container = await experimental_AstroContainer.create();
+const result = await container.renderToString(Blog, {
+  partial: false,
+});
+console.log(result); // includes `<!DOCTYPE html>` at the beginning of the HTML
+```

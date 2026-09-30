@@ -199,9 +199,8 @@ const builderModel = import.meta.env.BUILDER_BLOGPOST_MODEL;
 
 在 `src/pages/index.astro` 文件中添加以下代码，以便展示一个包含所有文章标题的列表，其中每个标题都链接到相应的文章页面：
 
-```astro title="src/pages/index.astro" {9}
+```astro title="src/pages/index.astro" {8}
 ---
-
 const builderAPIpublicKey = import.meta.env.BUILDER_API_PUBLIC_KEY;
 const builderModel = import.meta.env.BUILDER_BLOGPOST_MODEL;
 
@@ -223,16 +222,15 @@ const { results: posts } = await fetch(
   <body>
     <ul>
       {
-        posts.flatMap(({ data: { slug, title } }) => (
+        posts.flatMap((post: any) => (
           <li>
-            <a href={`/posts/${slug}`}>{title}</a>
+            <a href={`/posts/${post.data.slug}`}>{post.data.title}</a>
           </li>
         ))
       }
     </ul>
   </body>
 </html>
-
 ```
 
 我们通过内容 API 获取了一个包含每篇文章数据的对象数组。`fields` 查询参数用于指定我们希望 Builder 返回哪些数据字段（如高亮代码所示）。`slug` 和 `title` 应与你在 Builder 模型中添加的自定义数据字段名称相匹配。
@@ -269,7 +267,7 @@ const { results: posts } = await fetch(
 
 下面将对代码片段中的每个部分进行高亮显示。
 
-```astro title="src/pages/posts/[slug].astro"  ins={2, 26, 33, 40, 51}
+```astro title="src/pages/posts/[slug].astro"  ins={2, 26, 33, 41, 52}
 ---
 export async function getStaticPaths() {
   const builderModel = import.meta.env.BUILDER_BLOGPOST_MODEL;
@@ -280,17 +278,17 @@ export async function getStaticPaths() {
         apiKey: builderAPIpublicKey,
         fields: ["data.slug", "data.title"].join(","),
         cachebust: "true",
-      }
+      },
     ).toString()}`
   )
     .then((res) => res.json())
     .catch
     // ...catch some errors...);
     ();
-  return posts.map(({ data: { slug, title } }) => ({
-    params: { slug },
-    props: { title },
-  }))
+  return posts.map((post: any) => ({
+    params: { slug: post.data.slug },
+    props: { title: post.data.title },
+  }));
 }
 const { slug } = Astro.params;
 const { title } = Astro.props;
@@ -304,11 +302,12 @@ const { html: postHTML } = await fetch(
     url: encodedUrl,
     "query.data.slug": slug,
     cachebust: "true",
-  }).toString()}`
+  }).toString()}`,
 )
   .then((res) => res.json())
   .catch();
 ---
+
 <html lang="en">
   <head>
     <title>{title}</title>

@@ -86,11 +86,11 @@ import { Steps } from '@astrojs/starlight/components';
 
     编辑《Hello, World!》文章将会更新项目目录中的 `content/posts/hello-world.md` 文件。
 
-4. 通过编辑 `.tina/config.ts` 中的 `schema.collections` 属性来设置你的 Tina 集合。
+4. 通过编辑 `tina/config.ts` 中的 `schema.collections` 属性来设置你的 Tina 集合。
 
     例如，你可以向我们的文章添加一个必需的 frontmatter 属性「date posted」：
 
-    ```js title=".tina/config.ts" ins={35-40}
+    ```js title="tina/config.ts" ins={35-40}
     import { defineConfig } from "tinacms";
 
     // 你的托管提供商需要作为环境变量暴露出来

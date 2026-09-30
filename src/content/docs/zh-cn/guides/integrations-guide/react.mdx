@@ -13,6 +13,10 @@ import Since from '~/components/Since.astro';
 
 **[Astro 集成][astro-integration]** 为你的 [React](https://react.dev/) 组件实现渲染和客户端水合。
 
+:::tip[正在升级到 v7.0.0？]
+`@astrojs/react` v7.0.0 移除了 `babel` 集成选项。请参阅[将 React 集成升级到 v7.0.0](#将-react-集成升级到-v700)了解迁移说明。
+:::
+
 ## 安装
 
 Astro 包含了一个 `astro add` 命令，用于自动设置官方集成。如果你愿意，可以改为[手动安装集成](#手动安装)。
@@ -222,6 +226,93 @@ export default defineConfig({
 });
 ```
 
+### React 编译器
+
+<p>
+
+**类型：** `boolean | object`<br />
+**默认值：** `false`<br />
+<Since v="7.0.0" pkg="@astrojs/react" />
+</p>
+
+默认情况下，`@astrojs/react` 使用 [Oxc](https://oxc.rs/) 编译 JSX 并启用快速刷新。它不会记忆化你的组件或钩子。
+
+设置 `compiler: true`，即可使用[实验性的 Oxc React 编译器](https://oxc.rs/docs/guide/usage/transformer/react-compiler)自动记忆化客户端组件和钩子。这样可以减少不必要的重新渲染，而无需自己编写 `useMemo()`、`useCallback()` 或 `React.memo()`。
+
+编译器需要安装 [`oxc-transform-react`](https://www.npmjs.com/package/oxc-transform-react)：
+
+<PackageManagerTabs>
+  <Fragment slot="npm">
+  ```sh
+  npm install -D oxc-transform-react
+  ```
+  </Fragment>
+  <Fragment slot="pnpm">
+  ```sh
+  pnpm add -D oxc-transform-react
+  ```
+  </Fragment>
+  <Fragment slot="yarn">
+  ```sh
+  yarn add -D oxc-transform-react
+  ```
+  </Fragment>
+</PackageManagerTabs>
+
+编译器的目标是你安装的 React 版本。React 17 和 18 没有提供编译器运行时辅助函数。如果你的项目使用其中一个版本，还需要安装 [`react-compiler-runtime`](https://www.npmjs.com/package/react-compiler-runtime)：
+
+<PackageManagerTabs>
+  <Fragment slot="npm">
+  ```sh
+  npm install react-compiler-runtime
+  ```
+  </Fragment>
+  <Fragment slot="pnpm">
+  ```sh
+  pnpm add react-compiler-runtime
+  ```
+  </Fragment>
+  <Fragment slot="yarn">
+  ```sh
+  yarn add react-compiler-runtime
+  ```
+  </Fragment>
+</PackageManagerTabs>
+
+然后，在 React 集成中启用编译器：
+
+```js title="astro.config.mjs" ins={6}
+import { defineConfig } from 'astro/config';
+import react from '@astrojs/react';
+
+export default defineConfig({
+  integrations: [
+    react({ compiler: true }),
+  ],
+});
+```
+
+你也可以传入对象，以便更细致地控制编译器配置。
+
+以下示例将 `compilationMode` 配置为仅编译标记了 `"use memo"` 指令的组件和钩子：
+
+```js title="astro.config.mjs" {7-9}
+import { defineConfig } from 'astro/config';
+import react from '@astrojs/react';
+
+export default defineConfig({
+  integrations: [
+    react({
+      compiler: {
+        compilationMode: 'annotation',
+      },
+    }),
+  ],
+});
+```
+
+编译器会应用于集成的 [`include` 和 `exclude` 选项](#组合多个-jsx-框架)所适用的位置。它会跳过服务器渲染、依赖项和 `.astro` 文件。
+
 ### 解析子元素
 
 从 Astro 组件传递给 React 组件的子元素将被解析为普通字符串，而不是 React 节点。
@@ -277,6 +368,66 @@ export default defineConfig({
   ]
 });
 ```
+
+## 将 React 集成升级到 v7.0.0
+
+`@astrojs/react` v7.0.0 使用 [Oxc](https://oxc.rs/) 替代 Babel 来编译 JSX 并启用快速刷新，同时升级到 `@vitejs/plugin-react` v6。
+
+### 已移除：`babel` 选项
+
+请在 [`vite.plugins`](/zh-cn/reference/configuration-reference/#vite) 中使用 [`@rolldown/plugin-babel`](https://github.com/rolldown/plugins/tree/main/packages/babel) 配置自定义 Babel 转换，而不是使用已移除的 `babel` 选项。
+
+安装 `@rolldown/plugin-babel` 和 `@babel/core`：
+
+<PackageManagerTabs>
+  <Fragment slot="npm">
+  ```sh
+  npm install -D @rolldown/plugin-babel @babel/core
+  ```
+  </Fragment>
+  <Fragment slot="pnpm">
+  ```sh
+  pnpm add -D @rolldown/plugin-babel @babel/core
+  ```
+  </Fragment>
+  <Fragment slot="yarn">
+  ```sh
+  yarn add -D @rolldown/plugin-babel @babel/core
+  ```
+  </Fragment>
+</PackageManagerTabs>
+
+然后，将 Babel 插件和预设移到 `vite.plugins` 下的 `babel()` 插件中。
+
+以下示例将 `babel-plugin-styled-components` 从已移除的 `babel` 选项中移出：
+
+```js title="astro.config.mjs" del={7-11} ins={2,12,14-20}
+import react from '@astrojs/react';
+import babel from '@rolldown/plugin-babel';
+import { defineConfig } from 'astro/config';
+
+export default defineConfig({
+  integrations: [
+    react({
+      babel: {
+        plugins: ['babel-plugin-styled-components'],
+      },
+    }),
+    react(),
+  ],
+  vite: {
+    plugins: [
+      babel({
+        plugins: ['babel-plugin-styled-components'],
+      }),
+    ],
+  },
+});
+```
+
+对于以前通过 `babel` 回调配置的条件转换，请参阅 [`@rolldown/plugin-babel` 的 `overrides` 和预设钩子](https://github.com/rolldown/plugins/tree/main/packages/babel#options)。
+
+你可以将 `babel()` 与 [`compiler: true`](#react-编译器) 结合使用。如果你的 Babel 配置包含 `babel-plugin-react-compiler`，请先将其移除，以免对同一组件重复应用 React 编译器转换。
 
 [astro-integration]: /zh-cn/guides/integrations/
 

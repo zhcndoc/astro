@@ -362,19 +362,20 @@ Astro 文档 MCP 服务器提供了对于最新文档的访问能力，但你的
 
 <p><Since v="7.0.0" /></p>
 
-当检测到 AI 编码智能体时，`astro dev` 会自动以分离的后台进程启动开发服务器。这可以防止开发服务器阻塞智能体的终端，并允许它在服务器运行时继续工作。
+在 macOS 和 Linux 上检测到 AI 编码智能体时，`astro dev` 以及从 v7.2.0 开始的 `astro preview` 会自动以分离的后台进程启动服务器。这可以防止服务器阻塞智能体的终端，并允许它在服务器运行时继续工作。
 
-一个锁文件（`.astro/dev.json`）会在开发服务器启动时写入，记录服务器的 URL、端口和 PID。这可以防止为同一个项目启动重复的服务器。
+在 Windows 上，或在没有 AI 编码智能体时，服务器会以前台进程启动，并将日志输出到终端。你仍然可以通过传递 [`--background` 标志](/zh-cn/reference/cli-reference/#--background) 来显式启用后台模式。
 
-如果你没有使用 AI 编码智能体，`astro dev` 会以前台进程启动，并将日志输出到终端。
+服务器启动时会写入一个锁文件（`.astro/dev.json` 或 `.astro/preview.json`），记录服务器的 URL、端口和 PID。这可以防止为同一个项目启动重复的服务器。
 
-要退出自动的后台模式，请在运行 `astro dev` 前设置 `ASTRO_DEV_BACKGROUND` 环境变量：
+要退出自动的后台模式，请在运行命令前设置 `ASTRO_DEV_BACKGROUND` 或 `ASTRO_PREVIEW_BACKGROUND` 环境变量：
 
 ```shell
 ASTRO_DEV_BACKGROUND=0 astro dev
+ASTRO_PREVIEW_BACKGROUND=0 astro preview
 ```
 
-<ReadMore>查看 [CLI 参考](/zh-cn/reference/cli-reference/#astro-dev) 以了解 `astro dev` 的完整标志和子命令列表。</ReadMore>
+<ReadMore>查看 CLI 参考，以了解 [`astro dev`](/zh-cn/reference/cli-reference/#astro-dev) 和 [`astro preview`](/zh-cn/reference/cli-reference/#astro-preview) 的完整标志和子命令列表。</ReadMore>
 
 ### 健康检查端点
 

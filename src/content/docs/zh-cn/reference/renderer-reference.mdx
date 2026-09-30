@@ -1,0 +1,338 @@
+---
+title: Astro Renderer API
+sidebar:
+  label: Renderer API
+i18nReady: true
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 3
+---
+import Since from '~/components/Since.astro';
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+import ReadMore from '~/components/ReadMore.astro';
+
+Astro 旨在支持任何 UI 框架。这项能力由渲染器提供，渲染器是[集成](/zh-cn/reference/integrations-reference/)。请参阅[前端框架指南](/zh-cn/guides/framework-components/)，了解如何在 Astro 中使用不同框架的 UI 组件。
+
+## 什么是渲染器？
+
+渲染器是一种特殊的[集成](/zh-cn/reference/integrations-reference/)，用于告诉 Astro 如何检测和渲染它原生不处理的组件语法，例如 [UI 框架组件](/zh-cn/guides/framework-components/)。渲染器由两部分组成：
+- 一个在开发和生产构建期间导入、用于将组件渲染为 HTML 的服务端模块。
+- 一个可选的客户端模块，在浏览器中导入，用于使用[客户端指令](/zh-cn/reference/directives-reference/#client-directives)对组件进行水合。
+
+## 构建渲染器
+
+当你需要在 Astro 中添加对新组件语法的支持时，创建一个集成，并在 [`astro:config:setup`](/zh-cn/reference/integrations-reference/#astroconfigsetup) 钩子中调用 `addRenderer()`。这样你可以定义 Astro 用于渲染组件的[服务端入口点](#构建服务端入口点)。你也可以选择定义用于水合的[客户端入口点](#构建客户端入口点)。
+
+以下示例展示了如何在 Astro 集成中注册渲染器：
+
+```ts title="my-renderer/index.js" {5-11}
+export default function createIntegration() {
+  return {
+    name: "@example/my-renderer",
+    hooks: {
+      "astro:config:setup": ({ addRenderer }) => {
+        addRenderer({
+          name: "@example/my-renderer",
+          clientEntrypoint: "@example/my-renderer/client.js",
+          serverEntrypoint: "@example/my-renderer/server.js",
+        });
+      },
+    },
+  };
+}
+```
+
+## 构建服务端入口点
+
+你需要创建一个在服务端渲染期间运行的文件，并定义如何渲染组件语法。服务端模块必须默认导出一个实现 [`SSRLoadedRendererValue`](#ssrloadedrenderervalue) 接口的对象。
+
+以下示例展示了一个实现 `check()` 和 `renderToStaticMarkup()` 的最小服务端渲染器：
+
+```ts title="my-renderer/server.ts"
+import type { AstroComponentMetadata, NamedSSRLoadedRendererValue } from 'astro';
+
+async function check(Component: unknown) {
+  return typeof Component === 'function' && Component.name === 'MyCustomComponent';
+}
+
+async function renderToStaticMarkup(
+  Component: any,
+  props: Record<string, unknown>,
+  slots: Record<string, string>,
+  metadata?: AstroComponentMetadata,
+) {
+  const rendered = Component(props);
+
+  return {
+    attrs: metadata?.hydrate ? { 'data-my-renderer': 'true' } : undefined,
+    html: `<${rendered.tag}>${rendered.text}${slots.default ?? ''}</${rendered.tag}>`,
+  };
+}
+
+const renderer: NamedSSRLoadedRendererValue = {
+  name: 'my-renderer',
+  check,
+  renderToStaticMarkup,
+};
+
+export default renderer;
+```
+
+## 构建客户端入口点
+
+当你的渲染器支持[客户端指令](/zh-cn/reference/directives-reference/#client-directives)时，创建一个客户端入口点，定义如何在浏览器中为组件进行水合。客户端模块必须默认导出一个接收岛屿元素并返回异步水合函数的函数。
+
+每当一个岛屿从页面中移除时，Astro 都会在岛屿的根元素上分发自定义的 `astro:unmount` 事件。你可以在客户端入口点中监听此事件，以清理任何已挂载的应用状态。
+
+以下示例展示了一个在浏览器中为组件进行水合的最小客户端入口点：
+
+```ts title="my-renderer/client.ts"
+export default (element: HTMLElement) =>
+  async (
+    Component: any,
+    props: Record<string, unknown>,
+    slots: Record<string, string>,
+    { client }: { client: string },
+  ) => {
+    const rendered = Component({ ...props, slots });
+
+    if (client === 'only') {
+      element.innerHTML = '';
+    }
+
+    const node = document.createElement(rendered.tag);
+    node.textContent = rendered.text;
+    element.appendChild(node);
+
+    element.addEventListener('astro:unmount', () => node.remove(), { once: true });
+  };
+```
+
+## 渲染器类型参考
+
+以下类型可以从 `astro` 模块导入：
+
+```ts
+import type {
+  AstroComponentMetadata,
+  AstroRenderer,
+  NamedSSRLoadedRendererValue,
+  SSRLoadedRenderer,
+  SSRLoadedRendererValue,
+} from "astro";
+```
+
+### `AstroComponentMetadata`
+
+<p>
+
+**类型：** `{ displayName: string; hydrate?: 'load' | 'idle' | 'visible' | 'media' | 'only'; hydrateArgs?: any; componentUrl?: string; componentExport?: { value: string; namespace?: boolean }; astroStaticSlot: true; }`
+</p>
+
+包含正在渲染的组件的信息，包括其水合指令。
+
+#### `AstroComponentMetadata.displayName`
+
+<p>
+
+**类型：** `string`
+</p>
+
+定义组件名称，用于错误消息和调试。
+
+#### `AstroComponentMetadata.hydrate`
+
+<p>
+
+**类型：** `'load' | 'idle' | 'visible' | 'media' | 'only'`
+</p>
+
+定义组件上使用的[客户端指令](/zh-cn/reference/directives-reference/#client-directives)。如果没有提供值，组件不会在客户端进行水合。
+
+渲染器可以使用此值有条件地包含客户端水合状态。例如，渲染器可以跳过为不会水合的组件序列化传输状态：
+
+```ts title="my-renderer/server.ts"
+import type { AstroComponentMetadata } from 'astro';
+import { render } from './custom-render';
+
+async function renderToStaticMarkup(
+  Component: any,
+  props: Record<string, unknown>,
+  slots: Record<string, string>,
+  metadata?: AstroComponentMetadata,
+) {
+  const willHydrate = !!metadata?.hydrate;
+  // Skip serializing hydration state if the component won't be hydrated
+  return render(Component, props, { includeTransferState: willHydrate });
+}
+```
+
+#### `AstroComponentMetadata.hydrateArgs`
+
+<p>
+
+**类型：** `any`
+</p>
+
+指定传递给水合指令的附加参数。
+
+例如，它可以是 `client:media` 的媒体查询字符串（即 `"(max-width: 768px)"`），也可以是 `client:only` 的渲染器提示（即 `"react"`）。
+
+#### `AstroComponentMetadata.componentUrl`
+
+<p>
+
+**类型：** `string`
+</p>
+
+定义组件源文件的 URL。
+
+#### `AstroComponentMetadata.componentExport`
+
+<p>
+
+**类型：** `{ value: string; namespace?: boolean }`
+</p>
+
+描述 Astro 将在客户端为已水合组件加载的组件导出。
+
+##### `AstroComponentMetadata.componentExport.namespace`
+
+<p>
+
+**类型：** `boolean`
+</p>
+
+指示该导出是否为命名空间导出。
+
+##### `AstroComponentMetadata.componentExport.value`
+
+<p>
+
+**类型：** `string`
+</p>
+
+定义导出名称（例如默认导出使用 `"default"`）。
+
+#### `AstroComponentMetadata.astroStaticSlot`
+
+<p>
+
+**类型：** `true`
+</p>
+
+指示 Astro 是否支持此组件的静态插槽优化。将 [`supportsAstroStaticSlot`](#ssrloadedrenderervaluesupportsastrostaticslot) 设置为 `true` 的渲染器可以将其与 [`hydrate`](#astrocomponentmetadatahydrate) 结合使用，以确定如何渲染插槽。
+
+### `AstroRenderer`
+
+<p>
+
+**类型：** `{ name: string; clientEntrypoint?: string | URL; serverEntrypoint: string | URL; }`
+</p>
+
+描述[由集成添加的组件渲染器](/zh-cn/reference/integrations-reference/#addrenderer-option)。
+
+#### `AstroRenderer.name`
+
+<p>
+
+**类型：** `string`
+</p>
+
+定义渲染器唯一的公共名称。
+
+#### `AstroRenderer.clientEntrypoint`
+
+<p>
+
+**类型：** `string | URL`
+</p>
+
+定义组件使用时在客户端运行的渲染器的导入路径。
+
+#### `AstroRenderer.serverEntrypoint`
+
+<p>
+
+**类型：** `string | URL`
+</p>
+
+定义组件使用时，在服务端请求或静态构建期间运行的渲染器的导入路径。
+
+### `NamedSSRLoadedRendererValue`
+
+在 [`SSRLoadedRendererValue`](#ssrloadedrenderervalue) 的基础上增加了必需的 `name` 属性。
+
+### `SSRLoadedRenderer`
+
+<p>
+
+**类型：** <code>Pick\<<a href="#astrorenderer">AstroRenderer</a>, 'name' | 'clientEntrypoint'\> & \{ ssr: <a href="#ssrloadedrenderervalue">SSRLoadedRendererValue</a>; \}</code>
+</p>
+
+描述可供服务端使用的渲染器。这是 [`AstroRenderer`](#astrorenderer) 的子集，并包含额外属性。
+
+#### `SSRLoadedRenderer.ssr`
+
+<p>
+
+**类型：** [`SSRLoadedRendererValue`](#ssrloadedrenderervalue)
+</p>
+
+定义此框架的服务端使用的函数和配置。
+
+### `SSRLoadedRendererValue`
+
+<p>
+
+**类型：** `object`
+</p>
+
+包含在服务端从特定 UI 框架渲染组件所需的函数和配置。
+
+#### `SSRLoadedRendererValue.name`
+
+<p>
+
+**类型：** `string`
+</p>
+
+指定渲染器的名称标识符。
+
+#### `SSRLoadedRendererValue.check()`
+
+<p>
+
+**类型：** <code>(Component: any, props: any, slots: Record\<string, string\>, metadata?: <a href="#astrocomponentmetadata">AstroComponentMetadata</a>) => Promise\<boolean\></code>
+</p>
+
+确定渲染器是否可以处理某个组件。此函数会针对每个已注册的渲染器调用，直到其中一个返回 `true`。
+
+#### `SSRLoadedRendererValue.renderToStaticMarkup()`
+
+<p>
+
+**类型：** <code>(Component: any, props: any, slots: Record\<string, string\>, metadata?: <a href="#astrocomponentmetadata">AstroComponentMetadata</a>) => Promise\<\{ html: string; attrs?: Record\<string, string\>; \}\></code>
+</p>
+
+在服务端渲染框架组件，并返回生成的 HTML 字符串以及要传递给客户端入口点的可选属性。
+
+#### `SSRLoadedRendererValue.supportsAstroStaticSlot`
+
+<p>
+
+**类型：** `boolean`<br />
+<Since v="2.5.0" />
+</p>
+
+指示渲染器是否支持 Astro 的静态插槽优化。为 `true` 时，Astro 会阻止移除岛屿中的嵌套插槽。
+
+#### `SSRLoadedRendererValue.renderHydrationScript()`
+
+<p>
+
+**类型：** `() => string`<br />
+<Since v="4.1.0" />
+</p>
+
+返回一个 HTML 字符串，在此渲染器处理的第一个已水合组件之前，每页注入一次。对于需要页面级水合设置的渲染器，这很有用。

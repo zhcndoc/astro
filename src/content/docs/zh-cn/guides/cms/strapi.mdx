@@ -128,6 +128,11 @@ export default interface Article {
   createdAt: string;
   updatedAt: string;
   publishedAt: string;
+  image: {
+    data: {
+      url: string;
+    };
+  };
 }
 ```
 
@@ -268,8 +273,9 @@ const article = Astro.props;
 
 接着，使用每个文章对象的属性来创建每个页面的模板。
 
-```astro title="src/pages/blog/[slug].astro" ins={21-43}
+```astro title="src/pages/blog/[slug].astro" ins={22-44}
 ---
+import MyMarkdownComponent from '../../components/MyMarkdownComponent.astro';
 import fetchApi from '../../lib/strapi';
 import type Article from '../../interfaces/article';
 
@@ -326,8 +332,9 @@ const article = Astro.props;
 
 ```astro title="src/pages/blog/[slug].astro"
 ---
-import fetchApi from '../../../lib/strapi';
-import type Article from '../../../interfaces/article';
+import MyMarkdownComponent from '../../components/MyMarkdownComponent.astro';
+import fetchApi from '../../lib/strapi';
+import type Article from '../../interfaces/article';
 
 const { slug } = Astro.params;
 

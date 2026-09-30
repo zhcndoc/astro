@@ -479,6 +479,28 @@ astro --config config/astro.config.mjs dev
 
 在服务器启动时自动在浏览器中打开应用程序。可以传递完整的 URL 字符串 (例如 `--open http://example.com`) 或路径名 (例如 `--open /about`) 来指定要打开的 URL。
 
+### `--background`
+
+<p><Since v="7.0.0" /></p>
+
+以分离的后台进程启动开发服务器，或从 v7.2.0 开始启动预览服务器，并启用 [JSON 日志](#--json)。
+
+服务器启动时，Astro 会写入一个锁文件（`.astro/dev.json` 或 `.astro/preview.json`），记录服务器的 URL、端口和 PID。这可以避免为同一个项目启动多个实例。
+
+在 macOS 和 Linux 上检测到 AI 智能体时会自动提供此标志。在 Windows 上不会自动启用后台模式：检测到 AI 智能体时，服务器会保持在前台，以便智能体直接管理进程。在所有平台上，你也可以手动使用此标志：
+
+```shell
+astro dev --background
+```
+
+如果项目已有服务器在运行，该命令会打印现有服务器的信息并退出，而不会启动新服务器。使用 `--force` 标志可以停止现有服务器并启动新服务器。
+
+```shell
+astro dev --background --force
+```
+
+<ReadMore>请参阅[面向 AI 编码智能体的后台模式](/zh-cn/guides/build-with-ai/#后台模式)，了解更多自动检测智能体和健康检查端点的信息。</ReadMore>
+
 ## 全局标志
 
 使用这些标志获取有关 `astro` CLI 的信息。

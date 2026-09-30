@@ -352,7 +352,7 @@ const articles = dataFormatter.deserialize(json);
     import type {TJsonApiBody} from "jsona/lib/JsonaTypes";
 
     import type { DrupalNode } from "../../types";
-    import {getArticles} from "../../api/drupal";
+    import { getArticles } from "../../api/drupal";
 
     // 获取所有已发布的文章。
     const articles = await getArticles();

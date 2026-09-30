@@ -100,24 +100,22 @@ export async function Prepr(query, variables) {
     ```
 
 3. 要在页面上显示你的博客文章的链接列表，请导入并执行你的查询，包括必要的 Prepr 端点。这样，你就可以访问所有文章的标题和它们的 slugs，并将它们渲染到页面上。（在下一步中，你将[为你的博客文章创建独立的页面](#创建独立的博客文章页面)。）
-    ```astro title="src/pages/index.astro" ins={3-4, 6-8, 15-23}
+    ```astro title="src/pages/index.astro" ins={3-4, 6-8, 13-21}
     ---
-    import Layout from '../layouts/Layout.astro';
-    import { Prepr } from '../lib/prepr.js';
-    import GetArticles from '../queries/get-articles.js';
+    import Layout from "../layouts/Layout.astro";
+    import { Prepr } from "../lib/prepr.js";
+    import GetArticles from "../queries/get-articles.js";
 
-    const response = await Prepr(GetArticles)
-    const { data } = await response.json()
-    const articles = data.Articles
+    const response = await Prepr(GetArticles);
+    const { data } = await response.json();
+    const articles = data.Articles;
     ---
 
     <Layout title="My blog site">
-      <h1>
-        My blog site
-      </h1>
+      <h1>My blog site</h1>
       <ul>
         {
-          articles.items.map((post) => (
+          articles.items.map((post: any) => (
             <li>
               <a href={post._slug}>{post.title}</a>
             </li>
@@ -149,7 +147,7 @@ export async function Prepr(query, variables) {
 
 <Steps>
 1. 在 `queries` 文件夹中创建一个名为 `get-article-by-slug.js` 的文件，并添加以下内容来查询一个特定文章的 slug，并返回诸如文章的 `title` 和 `content` 等数据：
-    ```js title="src/lib/queries/get-article-by-slug.js"
+    ```js title="src/queries/get-article-by-slug.js"
     const GetArticleBySlug = `
     query ($slug: String) {
        Article (slug: $slug) {
@@ -181,28 +179,24 @@ export async function Prepr(query, variables) {
 2. 在 `src/pages` 文件夹中，创建一个名为 `[…slug].astro` 的文件。添加以下代码来导入并执行上一步的查询，并展示检索到的文章：
     ```astro title="src/pages/[...slug].astro"
     ---
-    import Layout from '../layouts/Layout.astro';
-    import {Prepr} from '../lib/prepr.js';
-    import GetArticleBySlug from '../queries/get-article-by-slug.js';
+    import Layout from "../layouts/Layout.astro";
+    import { Prepr } from "../lib/prepr.js";
+    import GetArticleBySlug from "../queries/get-article-by-slug.js";
     const { slug } = Astro.params;
-    const response = await Prepr(GetArticleBySlug, {slug})
-    const { data } = await response.json()
-    const article = data.Article
+    const response = await Prepr(GetArticleBySlug, { slug });
+    const { data } = await response.json();
+    const article = data.Article;
     ---
     <Layout title={article.title}>
       <main>
         <h1>{article.title}</h1>
         {
-          article.content.map((content) => (
+          article.content.map((content: any) => (
             <div>
-              {
-                content.__typename === "Assets" &&
-                <img src={content.items[0].url} width="300" height="250"/>
-              }
-              {
-                content.__typename === 'Text' &&
-                <div set:html={content.body}></div>
-              }
+              {content.__typename === "Assets" && (
+                <img src={content.items[0].url} width="300" height="250" />
+              )}
+              {content.__typename === "Text" && <div set:html={content.body} />}
             </div>
           ))
         }

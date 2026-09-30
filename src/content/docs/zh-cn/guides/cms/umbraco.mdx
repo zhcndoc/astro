@@ -56,7 +56,7 @@ const articles = await res.json();
 ---
 <h1>Astro + Umbraco 🚀</h1>
 {
-  articles.items.map((article) => (
+  articles.items.map((article: any) => (
       <h1>{article.name}</h1>
       <p>{article.properties.articleDate}</p>
       <div set:html={article.properties.content?.markup}></div>
@@ -157,7 +157,7 @@ const articles = await res.json();
 
 添加以下代码到 `[...slug].astro`，它将创建你的单个博客文章页面：
 
-```astro title="[...slug].astro"
+```astro title="src/pages/[...slug].astro"
 ---
 import Layout from '../layouts/Layout.astro';
 

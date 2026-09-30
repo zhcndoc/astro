@@ -388,24 +388,24 @@ const { page, pieces } = Astro.props.aposData;
 
 要展示单个博客帖子，请在 Astro 项目的 `src/templates` 文件夹中创建一个名为 `BlogShow.astro` 的文件，并使用以下代码：
 
-此组件使用 `<AposArea>` 组件来展示添加到 `content` 区域的任何小部件以及输入到同名字段中的 `authorName` 和 `publicationDate` 内容。
+此组件使用 `<AposArea>` 组件来展示添加到 `main` 区域的任何小部件以及输入到同名字段中的 `authorName` 和 `publicationDate` 内容。
 
 ```js title="src/templates/BlogShow.astro"
 ---
-import AposArea from '@apostrophecms/apostrophe-astro/components/AposArea.astro';
-import dayjs from 'dayjs';
+import AposArea from "@apostrophecms/apostrophe-astro/components/AposArea.astro";
+import dayjs from "dayjs";
 
 const { page, piece } = Astro.props.aposData;
 const { main } = piece;
 ---
 
 <section class="bp-content">
-  <h1>{ piece.title }</h1>
-  <h3>创建者: { piece.authorName }
+  <h1>{piece.title}</h1>
+  <h3>创建者: {piece.authorName}</h3>
   <h4>
-    发布于 { dayjs(piece.publicationDate).format('MMMM D, YYYY') }
+    发布于 {dayjs(piece.publicationDate).format("MMMM D, YYYY")}
   </h4>
-  <AposArea area={content} />
+  <AposArea area={main} />
 </section>
 ```
 

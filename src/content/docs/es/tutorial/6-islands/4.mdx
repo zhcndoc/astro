@@ -156,14 +156,14 @@ Actualiza a la última versión de Astro y actualiza todas las integraciones a s
     ```astro title="src/pages/posts/[...slug].astro"
     ---
     import { getCollection, render } from 'astro:content';
-    
+
     export async function getStaticPaths() {
       const posts = await getCollection('blog');
       return posts.map(post => ({
         params: { slug: post.id }, props: { post },
       }));
     }
-    
+
     const { post } = Astro.props;
     const { Content } = await render(post);
     ---
@@ -175,14 +175,14 @@ Actualiza a la última versión de Astro y actualiza todas las integraciones a s
     ---
     import { getCollection, render } from 'astro:content';
     import MarkdownPostLayout from '../../layouts/MarkdownPostLayout.astro';
-    
+
     export async function getStaticPaths() {
       const posts = await getCollection('blog');
       return posts.map(post => ({
         params: { slug: post.id }, props: { post },
       }));
     }
-    
+
     const { post } = Astro.props;
     const { Content } = await render(post);
     ---
@@ -214,7 +214,7 @@ Actualiza a la última versión de Astro y actualiza todas las integraciones a s
   	import { getCollection } from "astro:content";
   	import BaseLayout from "../layouts/BaseLayout.astro";
   	import BlogPost from "../components/BlogPost.astro";
-  
+
   	const pageTitle = "Mi Blog de Aprendizaje de Astro";
   	const allPosts = Object.values(import.meta.glob("../pages/posts/*.md", { eager: true }));
   	const allPosts = await getCollection("blog");
@@ -228,7 +228,7 @@ Actualiza a la última versión de Astro y actualiza todas las integraciones a s
   	import { getCollection } from "astro:content";
   	import BaseLayout from "../layouts/BaseLayout.astro";
   	import BlogPost from "../components/BlogPost.astro";
-  
+
   	const pageTitle = "Mi Blog de Aprendizaje de Astro";
   	const allPosts = await getCollection("blog");
   	---
@@ -237,7 +237,7 @@ Actualiza a la última versión de Astro y actualiza todas las integraciones a s
   		<ul>
   			{
   				allPosts.map((post) => (
-  					<BlogPost url={post.url} title={post.frontmatter.title} />)}
+					<BlogPost url={post.url} title={post.frontmatter.title} />
   					<BlogPost url={`/posts/${post.id}/`} title={post.data.title} />
   				))
   			}
@@ -248,23 +248,23 @@ Actualiza a la última versión de Astro y actualiza todas las integraciones a s
 7.  El proyecto de blog del tutorial también genera dinámicamente una página para cada etiqueta usando `src/pages/tags/[tag].astro` y muestra una lista de etiquetas en `src/pages/tags/index.astro`.
 
       Aplica los mismos cambios que arriba a estos dos archivos:
-  
+
         - obtén datos sobre todas tus publicaciones de blog usando `getCollection("blog")` en lugar de usar `import.meta.glob()`
         - accede a todos los valores del frontmatter usando `data` en lugar de `frontmatter`
         - crea una URL de página agregando el `slug` de la publicación a la ruta `/posts/`
-  
+
       La página que genera páginas de etiquetas individuales ahora se convierte en:
-  
+
       ```astro title="src/pages/tags/[tag].astro" "post.data.tags" "getCollection("blog")" "post.data.title" ins={2} "/posts/${post.id}/"
       ---
       import { getCollection } from "astro:content";
       import BaseLayout from "../../layouts/BaseLayout.astro";
       import BlogPost from "../../components/BlogPost.astro";
-  
+
       export async function getStaticPaths() {
         const allPosts = await getCollection("blog");
         const uniqueTags = [...new Set(allPosts.map((post) => post.data.tags).flat())];
-  
+
         return uniqueTags.map((tag) => {
           const filteredPosts = allPosts.filter((post) =>
             post.data.tags.includes(tag)
@@ -275,11 +275,11 @@ Actualiza a la última versión de Astro y actualiza todas las integraciones a s
           };
         });
       }
-  
+
       const { tag } = Astro.params;
       const { posts } = Astro.props;
       ---
-  
+
       <BaseLayout pageTitle={tag}>
         <p>Publicaciones etiquetadas con {tag}</p>
         <ul>
@@ -287,12 +287,12 @@ Actualiza a la última versión de Astro y actualiza todas las integraciones a s
         </ul>
       </BaseLayout>
       ```
-  
+
        <Box icon="puzzle-piece">
          ### Pruébalo tú mismo - Actualiza la consulta en la página del Índice de Etiquetas
-  
+
       Importa y usa `getCollection` para obtener las etiquetas utilizadas en las publicaciones de blog en `src/pages/tags/index.astro`, siguiendo los [mismos pasos que arriba](#reemplazar-importmetaglob-con-getcollection).
-  
+
          <details>
            <summary>Muéstrame el código.</summary>
            ```astro title="src/pages/tags/index.astro" "post.data" "getCollection(\"blog\")" ins={2}

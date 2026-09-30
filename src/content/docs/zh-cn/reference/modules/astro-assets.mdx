@@ -687,11 +687,13 @@ import {
 import { baseService } from "astro/assets";
 
 const newImageService = {
- getURL: baseService.getURL,
- parseURL: baseService.parseURL,
- getHTMLAttributes: baseService.getHTMLAttributes,
- async transform(inputBuffer, transformOptions) {...}
-}
+  getURL: baseService.getURL,
+  parseURL: baseService.parseURL,
+  getHTMLAttributes: baseService.getHTMLAttributes,
+  async transform(inputBuffer, transformOptions) {
+    /* ... */
+  },
+};
 ```
 
 ### `getConfiguredImageService()`

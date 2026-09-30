@@ -174,7 +174,7 @@ export default config({
 		</FileTree>
 
 5. 打开你的代码编辑器，导航到该文件，确认你可以看到你之前输入的 Markdown 内容。例如：
-		```markdown
+      ```markdown title="src/content/posts/my-first-post.mdoc"
 		---
 		title: 我的第一篇文章
 		---
@@ -191,7 +191,7 @@ export default config({
 
 以下示例将展示一个帖子标题列表，每个标题都会链接到对应的帖子页面。
 
-```tsx {4}
+```astro title="src/pages/posts/index.astro" {4}
 ---
 import { getCollection } from 'astro:content'
 
@@ -208,21 +208,23 @@ const posts = await getCollection('posts')
 
 ### 显示单个条目
 
-要展示单个帖子的内容，你可以引入并使用 `<Content />` 组件，这样可以方便地[将内容渲染成 HTML](/zh-cn/guides/content-collections/#渲染正文内容)。
+要展示单个帖子的内容，你可以使用 `<Content />` 组件，通过 [`render()`](/zh-cn/guides/content-collections/#渲染正文内容) 将内容渲染成 HTML。
 
-```tsx {4-5}
+```astro title="src/pages/posts/my-first-post.astro" {8,13} ", render"
 ---
-import { getEntry } from 'astro:content'
+import { getEntry, render } from "astro:content";
 
-const post = await getEntry('posts', 'my-first-post')
-const { Content } = await post.render()
+const post = await getEntry("posts", "my-first-post");
+if (!post) {
+  throw new Error("Post not found");
+}
+const { Content } = await render(post);
 ---
 
 <main>
   <h1>{post.data.title}</h1>
   <Content />
 </main>
-
 ```
 
 要了解更多关于查询、过滤、展示你的内容集合以及更多信息，请查看完整的[内容集合文档](/zh-cn/guides/content-collections/)。

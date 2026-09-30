@@ -1,0 +1,6 @@
+{
+  "app_dir": "/",
+  "install_command": "npm install -g pnpm@11.1.2 && pnpm install --frozen-lockfile",
+  "build_command": "pnpm run build",
+  "output_dir": "dist"
+}
