@@ -1,0 +1,292 @@
+---
+title: Sätteri API 参考
+sidebar:
+  label: 'Sätteri'
+i18nReady: true
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 3
+---
+import Since from '~/components/Since.astro';
+import ReadMore from '~/components/ReadMore.astro';
+
+<p><Since v="6.4.0" /></p>
+
+[Sätteri](https://satteri.bruits.org/) 是 Astro 的默认 Markdown 处理器。`@astrojs/markdown-satteri` 包是可选的，安装后可启用 Sätteri 专属功能和插件。它还提供了一组辅助函数和类型，可用于构建集成或插件。
+
+有关功能和使用示例，请参阅 Markdown 指南中的 [Markdown 处理器](/zh-cn/guides/markdown-content/#markdown-processors)。
+
+## 从 `@astrojs/markdown-satteri` 导入
+
+以下辅助函数从 `@astrojs/markdown-satteri` 导入：
+
+```ts
+import {
+  createSatteriMarkdownProcessor,
+  isSatteriProcessor,
+  satteri,
+  satteriHeadingIdsPlugin,
+} from "@astrojs/markdown-satteri";
+```
+
+### `createSatteriMarkdownProcessor()`
+
+<p>
+
+**类型：** <code>(opts?: <a href="#satterimarkdownprocessoroptions">SatteriMarkdownProcessorOptions</a> | undefined) => Promise\<<a href="/zh-cn/reference/markdown-processors/unified/#markdownrenderer">MarkdownRenderer</a>\></code>
+</p>
+
+创建一个独立的、基于 Sätteri 的 Markdown 渲染器。如果你需要脱离项目已[配置的 `markdown.processor`](/zh-cn/reference/configuration-reference/#markdownprocessor) 来渲染 Markdown，这会很有用。
+
+```ts title="src/utils/markdown.ts"
+import { createSatteriMarkdownProcessor } from "@astrojs/markdown-satteri";
+
+const processor = await createSatteriMarkdownProcessor();
+const { code, metadata } = await processor.render("# Hello world");
+```
+
+### `isSatteriProcessor()`
+
+<p>
+
+**类型：** `(p: { name: string; }) => boolean`
+</p>
+
+判断给定的处理器是否为 Sätteri。如果你需要在应用 Sätteri 专属逻辑之前检查处理器类型，这会很有用。
+
+以下示例在集成中检查已配置的 Markdown 处理器是否为 Sätteri：
+
+```ts title="src/integrations/my-integration.ts" {9-11}
+import { isSatteriProcessor } from "@astrojs/markdown-satteri";
+import type { AstroIntegration } from "astro";
+
+export default function myIntegration(): AstroIntegration {
+  return {
+    name: "my-integration",
+    hooks: {
+      "astro:config:done": ({ config }) => {
+        if (isSatteriProcessor(config.markdown.processor)) {
+          // Apply Sätteri-specific logic here
+        }
+      },
+    },
+  };
+}
+```
+
+### `satteri()`
+
+<p>
+
+**类型：** <code>(options?: <a href="#options">SatteriProcessorOptions</a>) => <a href="/zh-cn/reference/markdown-processors/unified/#markdownprocessor">MarkdownProcessor</a></code>
+</p>
+
+创建基于 Sätteri 的 Markdown 处理器，用于渲染 `.md` 和 `.mdx` 文件。将它传递给 [`markdown.processor`](/zh-cn/reference/configuration-reference/#markdownprocessor)，即可自定义 Markdown 的渲染行为。
+
+<ReadMore>请参阅 Markdown 指南，了解如何[设置 Markdown 处理器](/zh-cn/guides/markdown-content/#setting-up-a-markdown-processor)以及[使用 mdast 和 hast 插件](/zh-cn/guides/markdown-content/#markdown-processor-plugins)。</ReadMore>
+
+#### 选项
+
+<p>
+
+**类型：** `SatteriProcessorOptions`
+</p>
+
+你可以使用以下选项来自定义 Sätteri 处理器的行为。
+
+##### `options.mdastPlugins`
+
+<p>
+
+**类型：** `MdastPluginList | undefined`<br />
+**默认值：** `[]`
+</p>
+
+传递 [Sätteri mdast 插件](https://satteri.bruits.org/docs/plugins/#mdast-plugins)，以自定义 Markdown 的构建方式。
+
+以下示例将 [`satteri-emoji`](https://www.npmjs.com/package/satteri-emoji) 插件传递给 Sätteri 处理器：
+
+```js title="astro.config.mjs" {2,7}
+import { satteri } from "@astrojs/markdown-satteri";
+import { satteriEmoji } from "satteri-emoji";
+
+export default {
+  markdown: {
+    processor: satteri({
+      mdastPlugins: [satteriEmoji],
+    }),
+  },
+};
+```
+
+##### `options.hastPlugins`
+
+<p>
+
+**类型：** `HastPluginList | undefined`<br />
+**默认值：** `[]`
+</p>
+
+传递 [Sätteri hast 插件](https://satteri.bruits.org/docs/plugins/#hast-plugins)，以自定义如何根据 Markdown 内容生成 HTML。
+
+以下示例将 [`satteri-custom-header-id`](https://www.npmjs.com/package/satteri-custom-header-id) 插件传递给 Sätteri 处理器：
+
+```js title="astro.config.mjs" {2,7}
+import { satteri } from "@astrojs/markdown-satteri";
+import { satteriCustomHeaderId } from "satteri-custom-header-id";
+
+export default {
+  markdown: {
+    processor: satteri({
+      hastPlugins: [satteriCustomHeaderId],
+    }),
+  },
+};
+```
+
+##### `options.features`
+
+<p>
+
+**类型：** [`SatteriFeatures`](https://satteri.bruits.org/docs/features/)<br />
+**默认值：** `{}`
+</p>
+
+自定义 [Sätteri 提供的功能](https://satteri.bruits.org/docs/features/)。
+
+以下属性在 Astro 中使用了不同的默认值。
+
+###### `options.features.smartPunctuation`
+
+<p>
+
+**类型：** `boolean | object`<br />
+**默认值：** `true`
+</p>
+
+是否使用[智能标点](/zh-cn/guides/markdown-content/#smart-punctuation)，将直引号转换为弯引号、将两个连字符转换为 em dash，并将三个句点转换为省略号。
+
+你可以禁用此功能，也可以提供配置对象，并使用 [Sätteri 支持的属性](https://satteri.bruits.org/docs/features/#smart-punctuation)来自定义行为。
+
+以下示例会禁用智能标点：
+
+```js title="astro.config.mjs" {7}
+import { defineConfig } from "astro/config";
+import { satteri } from "@astrojs/markdown-satteri";
+
+export default defineConfig({
+  markdown: {
+    processor: satteri({
+      smartPunctuation: false,
+    }),
+  },
+});
+```
+
+<ReadMore>请参阅 Markdown 指南，了解如何配置[智能标点](/zh-cn/guides/markdown-content/#smart-punctuation)。</ReadMore>
+
+### `satteriHeadingIdsPlugin()`
+
+<p>
+
+**类型：** `HastPluginEntry`
+</p>
+
+为 Markdown 内容中的所有标题生成并收集标题 ID。导入或渲染 Markdown 内容时，可以[使用这些 ID](/zh-cn/guides/markdown-content/#available-properties)。
+
+<ReadMore>有关用法示例，请参阅 Markdown 指南中的[标题 ID 与插件](/zh-cn/guides/markdown-content/#heading-ids-and-plugins)。</ReadMore>
+
+## `@astrojs/markdown-satteri` 类型
+
+以下类型从 `@astrojs/markdown-satteri` 导入：
+
+```ts
+import type {
+  SatteriAstroData,
+  SatteriMarkdownProcessorOptions,
+} from "@astrojs/markdown-satteri";
+```
+
+### `SatteriAstroData`
+
+<p>
+
+**类型：** <code>\{ frontmatter: Record\<string, any\>; headings: <a href="/zh-cn/reference/markdown-processors/unified/#markdownheading">MarkdownHeading</a>[]; localImagePaths: Set\<string\>; remoteImagePaths: Set\<string\>; \}</code><br />
+<Since v="0.3.1" pkg="@astrojs/markdown-satteri" />
+</p>
+
+描述 Sätteri 插件中通过 `ctx.data.astro` 提供的 Astro 专属数据。
+
+#### `SatteriAstroData.frontmatter`
+
+<p>
+
+**类型：** `Record<string, any>`
+</p>
+
+包含插件注入到 Markdown 或 MDX 内容 frontmatter 中的属性。
+
+<ReadMore>请参阅 Markdown 指南，了解如何[以编程方式修改 frontmatter](/zh-cn/guides/markdown-content/#modifying-frontmatter-programmatically)。</ReadMore>
+
+#### `SatteriAstroData.headings`
+
+<p>
+
+**类型：** <code><a href="/zh-cn/reference/markdown-processors/unified/#markdownheading">MarkdownHeading</a>[]</code>
+</p>
+
+Markdown 内容中收集到的标题列表。
+
+#### `SatteriAstroData.localImagePaths`
+
+<p>
+
+**类型：** `Set<string>`
+</p>
+
+Markdown 内容自身引用的本地图片路径数组。
+
+#### `SatteriAstroData.remoteImagePaths`
+
+<p>
+
+**类型：** `Set<string>`
+</p>
+
+Markdown 内容自身引用的远程图片路径数组。
+
+### `SatteriMarkdownProcessorOptions`
+
+<p>
+
+**类型：** <code><a href="/zh-cn/reference/configuration-reference/#markdown-options">AstroMarkdownOptions</a> & \{ mdastPlugins?: MdastPluginList; hastPlugins?: HastPluginList; features?: SatteriFeatures; \}</code>
+</p>
+
+描述 Markdown 处理器的配置。它包含所有 [`markdown` 选项](/zh-cn/reference/configuration-reference/#markdown-options)，以及以下选项。
+
+#### `SatteriMarkdownProcessorOptions.mdastPlugins`
+
+<p>
+
+**类型：** `MdastPluginList`
+</p>
+
+传递给处理器的 [Sätteri mdast 插件](https://satteri.bruits.org/docs/plugins/#mdast-plugins)列表。
+
+#### `SatteriMarkdownProcessorOptions.hastPlugins`
+
+<p>
+
+**类型：** `HastPluginList`
+</p>
+
+传递给处理器的 [Sätteri hast 插件](https://satteri.bruits.org/docs/plugins/#hast-plugins)列表。
+
+#### `SatteriMarkdownProcessorOptions.features`
+
+<p>
+
+**类型：** [`SatteriFeatures`](https://satteri.bruits.org/docs/features/)
+</p>
+
+包含要在 Sätteri 处理器中启用或禁用的功能配置。

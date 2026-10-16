@@ -21,7 +21,7 @@ import ReadMore from '~/components/ReadMore.astro';
 
 ## 前提条件
 
-- **Node.js** - `v22.12.0` 或更高版本。（奇数版本如 `v23` 不支持。）
+- **Node.js** - `v22.22.0` 或更高版本。（奇数版本如 `v23` 不支持。）
 - **文本编辑器** - 我们推荐使用 [VS Code](https://code.visualstudio.com/) 并安装我们的 [官方 Astro 扩展](https://marketplace.visualstudio.com/items?itemName=astro-build.astro-vscode)。
 - **终端** - Astro 通过其命令行界面（CLI）访问。
 
@@ -304,7 +304,20 @@ Astro 使用 Vite 构建，Vite 默认针对支持现代 JavaScript 的浏览器
 
     <ReadMore>阅读 Astro 的 [TypeScript 设置指南](/zh-cn/guides/typescript/#设置) 以获取更多信息。</ReadMore>
 
-7. 接下来
+7. 创建 `.gitignore`（可选）
+
+    如果你使用 Git 进行版本控制，请在项目根目录创建 `.gitignore` 文件。添加以下条目，以排除 Astro 生成的文件、已安装的依赖项和 `.env` 文件：
+
+    ```text title=".gitignore"
+    .astro/
+    .env
+    dist/
+    node_modules/
+    ```
+
+    还可以在此列表中添加希望从版本控制中排除的其他文件。例如，如果你使用[其他 `.env` 文件](/zh-cn/guides/environment-variables/#env-files)，也必须将它们加入列表，因为其中可能包含密钥。
+
+8. 接下来
 
     如果你已经按照上面的步骤操作，你的项目目录现在应该如下所示：
 
@@ -315,12 +328,13 @@ Astro 使用 Vite 构建，Vite 默认针对支持现代 JavaScript 的浏览器
     - src/
       - pages/
         - index.astro
+    - .gitignore
     - astro.config.mjs
     - package-lock.json 或 `yarn.lock`、`pnpm-lock.yaml` 等。
     - package.json
     - tsconfig.json
     </FileTree>
 
-8. 现在你可以[启动 Astro 开发服务器](/zh-cn/develop-and-build/#启动-astro-开发服务器) 并在构建项目的同时查看实时预览了！
+9. 现在你可以[启动 Astro 开发服务器](/zh-cn/develop-and-build/#启动-astro-开发服务器) 并在构建项目的同时查看实时预览了！
 
 </Steps>

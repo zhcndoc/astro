@@ -131,6 +131,10 @@ const { error } = Astro.props;
 
 为了避免在展示内容时从 `error` 属性中显示敏感信息，请首先考虑评估错误，并根据抛出的错误返回适当的内容。例如，应避免显示错误的堆栈，因为它包含有关服务器上代码结构的信息。
 
+## 自定义 3xx 重定向页面
+
+要自定义 Astro 在静态构建中为重定向生成的 HTML 页面，请参阅[实验性重定向页面功能](/zh-cn/reference/experimental-flags/redirect-page/)。
+
 ## 局部页面
 
 <p><Since v="3.4.0" /></p>

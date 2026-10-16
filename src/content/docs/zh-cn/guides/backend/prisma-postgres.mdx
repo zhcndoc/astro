@@ -19,14 +19,15 @@ import ReadMore from '~/components/ReadMore.astro';
 
 ### 前提条件
 - 一个已安装适配器并支持 [按需渲染（SSR）](/zh-cn/guides/on-demand-rendering/)的 Astro 项目。
+- Prisma ORM 7。Prisma ORM 8 使用不同的设置方式，本指南不涵盖。
 
 ### 安装依赖并初始化 Prisma
 
 运行以下命令安装所需的 Prisma 依赖项：
 
 ```bash
-npm install prisma tsx --save-dev 
-npm install @prisma/adapter-pg @prisma/client
+npm install prisma@7 tsx dotenv --save-dev
+npm install @prisma/adapter-pg@7 @prisma/client@7
 ```
 
 安装完成后，使用以下命令在项目中初始化 Prisma：
@@ -39,6 +40,7 @@ npx prisma init --db --output ./generated
 
 这将创建：
 - 一个包含 `schema.prisma` 文件的 `prisma/` 目录
+- 一个从 `.env` 加载 `DATABASE_URL` 的 `prisma7.config.ts` 文件
 - 一个已设置好 `DATABASE_URL` 的 `.env` 文件
 
 ### 定义模型
@@ -55,7 +57,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model Post {
@@ -66,7 +67,7 @@ model Post {
 }
 ```
 
-在 [Prisma schema](https://www.prisma.io/docs/concepts/components/prisma-schema) 参考文档中了解更多关于配置 Prisma ORM 设置的信息。
+在 [Prisma schema](https://www.prisma.io/docs/orm/v7/prisma-schema/overview) 参考文档中了解更多关于配置 Prisma ORM 设置的信息。
 
 ### 生成客户端
 
@@ -78,7 +79,7 @@ npx prisma generate
 
 ### 生成迁移文件
 
-运行以下命令创建数据库表并根据你的模式创建 Prisma 客户端。这还将创建包含迁移历史记录文件的 `prisma/migrations/` 目录。
+运行以下命令根据你的模式创建数据库表。这还将创建包含迁移历史记录文件的 `prisma/migrations/` 目录。
 
 ```bash
 npx prisma migrate dev --name init

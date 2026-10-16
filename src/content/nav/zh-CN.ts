@@ -16,6 +16,7 @@ export default navDictionary({
 
 	reference: '参考',
 	'reference.runtime': '运行时 API',
+	'reference.processors': 'Markdown 处理器',
 	'reference.other': '其他开发 API',
 	'reference.syntax': 'Astro 模板语法',
 	'reference.experimental': '实验性功能',

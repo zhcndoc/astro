@@ -1,0 +1,656 @@
+---
+title: Unified API 参考
+sidebar:
+  label: 'Unified'
+i18nReady: true
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 3
+---
+import Since from '~/components/Since.astro';
+import ReadMore from '~/components/ReadMore.astro';
+
+Astro 通过 `@astrojs/markdown-remark` 包提供对流行 Markdown 生态系统 [unified](https://unifiedjs.com/) 的可选支持。借助 remark 和 rehype 插件，你可以自定义并扩展渲染过程。该包还提供了一组辅助函数和类型，可用于构建集成或插件。
+
+有关功能和使用示例，请参阅 Markdown 指南中的 [Markdown 处理器](/zh-cn/guides/markdown-content/#markdown-processors)。
+
+## 从 `@astrojs/markdown-remark` 导入
+
+以下辅助函数从 `@astrojs/markdown-remark` 导入：
+
+```ts
+import {
+  createMarkdownProcessor,
+  isUnifiedProcessor,
+  parseFrontmatter,
+  rehypeHeadingIds,
+  unified,
+} from "@astrojs/markdown-remark";
+```
+
+### `createMarkdownProcessor()`
+
+<p>
+
+**类型：** <code>(opts?: <a href="#astromarkdownoptions">AstroMarkdownOptions</a>) => Promise\<<a href="#markdownrenderer">MarkdownRenderer</a>\></code><br />
+<Since v="3.2.0" pkg="@astrojs/markdown-remark" />
+</p>
+
+创建一个独立的、基于 unified 的 Markdown 渲染器。如果你需要脱离项目已[配置的 `markdown.processor`](/zh-cn/reference/configuration-reference/#markdownprocessor) 来渲染 Markdown，这会很有用。
+
+```ts title="src/utils/markdown.ts"
+import { createMarkdownProcessor } from "@astrojs/markdown-remark";
+
+const processor = await createMarkdownProcessor();
+const { code, metadata } = await processor.render("# Hello world");
+```
+
+### `isUnifiedProcessor()`
+
+<p>
+
+**类型：** `(p: { name: string; }) => boolean`<br />
+<Since v="7.2.0" pkg="@astrojs/markdown-remark" />
+</p>
+
+判断给定的 Markdown 处理器是否为 unified。如果你需要在应用 unified 专属逻辑之前检查处理器类型，这会很有用。
+
+以下示例在集成中检查已配置的 Markdown 处理器是否为 unified：
+
+```ts title="src/integrations/my-integration.ts" {9-11}
+import { isUnifiedProcessor } from "@astrojs/markdown-remark";
+import type { AstroIntegration } from "astro";
+
+export default function myIntegration(): AstroIntegration {
+  return {
+    name: "my-integration",
+    hooks: {
+      "astro:config:done": ({ config }) => {
+        if (isUnifiedProcessor(config.markdown.processor)) {
+          // Apply unified-specific logic here
+        }
+      },
+    },
+  };
+}
+```
+
+### `rehypeHeadingIds()`
+
+<p>
+
+**类型：** <code><a href="#rehypeplugin">RehypePlugin</a></code><br />
+<Since v="1.2.0" pkg="@astrojs/markdown-remark" />
+</p>
+
+为 Markdown 内容中的所有标题生成并收集标题 ID。导入或渲染 Markdown 内容时，可以[使用这些 ID](/zh-cn/guides/markdown-content/#available-properties)。
+
+<ReadMore>有关用法示例，请参阅 Markdown 指南中的[标题 ID 与插件](/zh-cn/guides/markdown-content/#heading-ids-and-plugins)。</ReadMore>
+
+### `unified()`
+
+<p>
+
+**类型：** <code>(options?: <a href="#options">UnifiedProcessorOptions</a>) => <a href="#markdownprocessor">MarkdownProcessor</a></code><br />
+<Since v="7.2.0" pkg="@astrojs/markdown-remark" />
+</p>
+
+创建一个基于 unified 的处理器，用于渲染 `.md` 和 `.mdx` 文件。将它传递给 [`markdown.processor`](/zh-cn/reference/configuration-reference/#markdownprocessor)，即可将 unified 用作默认 Markdown 处理器。
+
+<ReadMore>请参阅 Markdown 指南，了解如何[设置 Markdown 处理器](/zh-cn/guides/markdown-content/#setting-up-a-markdown-processor)以及[使用 remark 和 rehype 插件](/zh-cn/guides/markdown-content/#markdown-processor-plugins)。</ReadMore>
+
+#### 选项
+
+<p>
+
+**类型：** `UnifiedProcessorOptions`
+</p>
+
+你可以使用以下选项来自定义 unified 处理器的行为。
+
+##### `options.remarkPlugins`
+
+<p>
+
+**类型：** [`RemarkPlugins`](#remarkplugins)<br />
+**默认值：** `[]`
+</p>
+
+传递 [remark 插件](https://github.com/remarkjs/remark#plugins)，以自定义 Markdown 的构建方式。你可以导入并应用插件函数（推荐），也可以将插件名作为字符串传递。
+
+以下示例将带有自定义 `heading` 选项的 [`remark-toc`](https://www.npmjs.com/package/remark-toc) 插件传递给 unified 处理器：
+
+```js title="astro.config.mjs" {3,8}
+import { defineConfig } from "astro/config";
+import { unified } from "@astrojs/markdown-remark";
+import remarkToc from "remark-toc";
+
+export default defineConfig({
+  markdown: {
+    processor: unified({
+      remarkPlugins: [[remarkToc, { heading: "contents" }]],
+    }),
+  },
+});
+```
+
+##### `options.rehypePlugins`
+
+<p>
+
+**类型：** [`RehypePlugins`](#rehypeplugins)<br />
+**默认值：** `[]`
+</p>
+
+传递 [rehype 插件](https://github.com/rehypejs/rehype#plugins)，以自定义如何根据 Markdown 内容生成 HTML。你可以导入并应用插件函数（推荐），也可以将插件名作为字符串传递。
+
+以下示例将 [`rehype-accessible-emojis`](https://www.npmjs.com/package/rehype-accessible-emojis) 插件传递给 unified 处理器：
+
+```js title="astro.config.mjs" {3,8}
+import { defineConfig } from "astro/config";
+import { unified } from "@astrojs/markdown-remark";
+import { rehypeAccessibleEmojis } from "rehype-accessible-emojis";
+
+export default defineConfig({
+  markdown: {
+    processor: unified({
+      rehypePlugins: [rehypeAccessibleEmojis],
+    }),
+  },
+});
+```
+
+##### `options.remarkRehype`
+
+<p>
+
+**类型：** [`RemarkRehype`](#remarkrehype)
+</p>
+
+传递选项给 [`remark-rehype`](https://github.com/remarkjs/remark-rehype) 插件，以控制 Markdown 转换为 HTML 的方式。
+
+以下示例自定义脚注标签：
+
+```js title="astro.config.mjs" {7-10}
+import { defineConfig } from "astro/config";
+import { unified } from "@astrojs/markdown-remark";
+
+export default defineConfig({
+  markdown: {
+    processor: unified({
+      remarkRehype: {
+        footnoteLabel: "Footnotes",
+        footnoteBackLabel: "Back to reference 1",
+      },
+    }),
+  },
+});
+```
+
+##### `options.recmaPlugins`
+
+<p>
+
+**类型：** `PluggableList`<br />
+**默认值：** `[]`
+</p>
+
+传递 [recma 插件](https://github.com/mdx-js/recma#plugins)，以自定义 [MDX 文件](/zh-cn/guides/integrations-guide/mdx/)的 [ESTree](https://github.com/estree/estree) 输出。这对于修改或注入 JavaScript 变量很有用。
+
+```js title="astro.config.mjs" {3,8}
+import { defineConfig } from "astro/config";
+import { unified } from "@astrojs/markdown-remark";
+import myRecmaPlugin from "./my-recma-plugin.mjs";
+
+export default defineConfig({
+  markdown: {
+    processor: unified({
+      recmaPlugins: [myRecmaPlugin],
+    }),
+  },
+});
+```
+
+你可以使用 [AST Explorer](https://astexplorer.net/) 查看 ESTree 输出，也可以尝试使用 [`estree-util-visit`](https://unifiedjs.com/explore/package/estree-util-visit/) 搜索 JavaScript 节点。
+
+##### `options.gfm`
+
+<p>
+
+**类型：** `boolean`<br />
+**默认值：** `true`
+</p>
+
+是否启用 [GitHub 风格 Markdown（GFM）](https://github.com/remarkjs/remark-gfm) 支持。
+
+要禁用此功能，请将 `gfm` 选项设为 `false`：
+
+```js title="astro.config.mjs" {7}
+import { defineConfig } from "astro/config";
+import { unified } from "@astrojs/markdown-remark";
+
+export default defineConfig({
+  markdown: {
+    processor: unified({
+      gfm: false,
+    }),
+  },
+});
+```
+
+<ReadMore>了解如何在 Astro 中使用 [GitHub 风格 Markdown](/zh-cn/guides/markdown-content/#github-flavored-markdown)。</ReadMore>
+
+##### `options.smartypants`
+
+<p>
+
+**类型：** <code>boolean | <a href="#smartypants">Smartypants</a></code><br />
+**默认值：** `true`
+</p>
+
+是否使用 [SmartyPants 格式化器](https://daringfireball.net/projects/smartypants/)，将直引号转换为弯引号，将连字符转换为 en dash 或 em dash，并将三个句点转换为省略号。
+
+你可以禁用此功能，也可以提供配置对象，并使用 [`retext-smartypants` 支持的属性](https://github.com/retextjs/retext-smartypants#fields)来自定义行为。
+
+以下示例会禁用智能标点：
+
+```js title="astro.config.mjs" {7}
+import { defineConfig } from "astro/config";
+import { unified } from "@astrojs/markdown-remark";
+
+export default defineConfig({
+  markdown: {
+    processor: unified({
+      smartypants: false,
+    }),
+  },
+});
+```
+
+<ReadMore>请参阅 Markdown 指南，了解如何配置[智能标点](/zh-cn/guides/markdown-content/#smart-punctuation)。</ReadMore>
+
+## `@astrojs/markdown-remark` 类型
+
+以下类型从 `@astrojs/markdown-remark` 导入：
+
+```ts
+import type {
+  AstroMarkdownOptions,
+  MarkdownHeading,
+  MarkdownProcessor,
+  MarkdownRenderOptions,
+  MarkdownRenderResult,
+  MarkdownRenderer,
+  RehypePlugin,
+  RehypePlugins,
+  RemarkPlugin,
+  RemarkPlugins,
+  RemarkRehype,
+  ShikiConfig,
+  Smartypants,
+  SyntaxHighlightConfig,
+  SyntaxHighlightConfigType,
+} from "@astrojs/markdown-remark";
+```
+
+### `AstroMarkdownOptions`
+
+<p>
+
+**类型：** `{ syntaxHighlight?: SyntaxHighlightConfig | SyntaxHighlightConfigType | false; shikiConfig?: ShikiConfig; image?: { domains?: string[]; remotePatterns?: RemotePattern[]; }; }`<br />
+<Since v="7.2.0" pkg="@astrojs/markdown-remark" />
+</p>
+
+描述 Markdown 处理器的配置。除所有 [`markdown` 选项](/zh-cn/reference/configuration-reference/#markdown-options)外，还包含以下选项。
+
+#### `AstroMarkdownOptions.image`
+
+<p>
+
+**类型：** <code>\{ domains?: string[]; remotePatterns?: <a href="/zh-cn/reference/modules/astro-assets/#remotepattern">RemotePattern[]</a>; \}</code>
+</p>
+
+指定 Markdown 处理器的图像配置。
+
+##### `AstroMarkdownOptions.image.domains`
+
+<p>
+
+**类型：** `string[]`
+</p>
+
+请参阅配置参考中的 [`image.domains`](/zh-cn/reference/configuration-reference/#imagedomains)。
+
+##### `AstroMarkdownOptions.image.remotePatterns`
+
+<p>
+
+**类型：** <code><a href="/zh-cn/reference/modules/astro-assets/#remotepattern">RemotePattern[]</a></code>
+</p>
+
+请参阅配置参考中的 [`image.remotePatterns`](/zh-cn/reference/configuration-reference/#imageremotepatterns)。
+
+### `MarkdownHeading`
+
+<p>
+
+**类型：** `{ depth: number; slug: string; text: string; }`<br />
+<Since v="7.2.0" pkg="@astrojs/markdown-remark" />
+</p>
+
+表示 Markdown 或 MDX 文档中的一个标题。
+
+#### `MarkdownHeading.depth`
+
+<p>
+
+**类型：** `number`
+</p>
+
+标题级别，从 `1`（`<h1>`）到 `6`（`<h6>`）。
+
+#### `MarkdownHeading.slug`
+
+<p>
+
+**类型：** `string`
+</p>
+
+指定生成的 slug，该值用作锚点链接的 `id` 属性。
+
+#### `MarkdownHeading.text`
+
+<p>
+
+**类型：** `string`
+</p>
+
+包含渲染后的标题文本内容。
+
+### `MarkdownProcessor`
+
+<p>
+
+**类型：** `object`<br />
+<Since v="7.2.0" pkg="@astrojs/markdown-remark" />
+</p>
+
+描述[已配置的 `markdown.processor`](/zh-cn/reference/configuration-reference/#markdownprocessor)。如果你想声明某个变量可以接受任意[内置 Markdown 处理器](/zh-cn/guides/markdown-content/#markdown-processors)，这会很有用。
+
+### `MarkdownRenderOptions`
+
+<p>
+
+**类型：** `{ fileURL?: URL; frontmatter?: Record<string, any>; }`<br />
+<Since v="7.2.0" pkg="@astrojs/markdown-remark" />
+</p>
+
+描述渲染 Markdown 内容时可用的选项。
+
+#### `MarkdownRenderOptions.fileURL`
+
+<p>
+
+**类型：** `URL`
+</p>
+
+指定正在渲染的 Markdown 文件的 URL。
+
+#### `MarkdownRenderOptions.frontmatter`
+
+<p>
+
+**类型：** `Record<string, any>`
+</p>
+
+提供 Markdown 内容的 frontmatter 数据。
+
+### `MarkdownRenderResult`
+
+<p>
+
+**类型：** <code>\{ code: string; metadata: \{ headings: <a href="#markdownheading">MarkdownHeading</a>[]; localImagePaths: string[]; remoteImagePaths: string[]; frontmatter: Record\<string, any\>; \}; \}</code><br />
+<Since v="7.2.0" pkg="@astrojs/markdown-remark" />
+</p>
+
+描述渲染后的 Markdown 文件。
+
+#### `MarkdownRenderResult.code`
+
+<p>
+
+**类型：** `string`
+</p>
+
+包含渲染后的 HTML 代码。
+
+#### `MarkdownRenderResult.metadata`
+
+<p>
+
+**类型：** <code>\{ headings: <a href="#markdownheading">MarkdownHeading</a>[]; localImagePaths: string[]; remoteImagePaths: string[]; frontmatter: Record\<string, any\>; \}</code>
+</p>
+
+描述与内容关联的元数据。
+
+##### `MarkdownRenderResult.metadata.headings`
+
+<p>
+
+**类型：** <code><a href="#markdownheading">MarkdownHeading</a>[]</code>
+</p>
+
+提取出的标题列表。
+
+##### `MarkdownRenderResult.metadata.localImagePaths`
+
+<p>
+
+**类型：** `string[]`
+</p>
+
+渲染内容中引用的本地图片路径数组。
+
+##### `MarkdownRenderResult.metadata.remoteImagePaths`
+
+<p>
+
+**类型：** `string[]`
+</p>
+
+渲染内容中引用的远程图片路径数组。
+
+##### `MarkdownRenderResult.metadata.frontmatter`
+
+<p>
+
+**类型：** `Record<string, any>`
+</p>
+
+传递给渲染器的 frontmatter。
+
+### `MarkdownRenderer`
+
+<p>
+
+**类型：** <code>\{ render: (content: string, opts?: <a href="#markdownrenderoptions">MarkdownRenderOptions</a>) => Promise\<<a href="#markdownrenderresult">MarkdownRenderResult</a>\>; \}</code><br />
+<Since v="7.2.0" pkg="@astrojs/markdown-remark" />
+</p>
+
+指定[独立 Markdown 处理器](#createmarkdownprocessor)所实现的接口。
+
+#### `MarkdownRenderer.render()`
+
+<p>
+
+**类型：** <code>(content: string, opts?: <a href="#markdownrenderoptions">MarkdownRenderOptions</a>) => Promise\<<a href="#markdownrenderresult">MarkdownRenderResult</a>\></code>
+</p>
+
+为给定的 Markdown 内容生成渲染后的 HTML 和元数据。你可以通过第二个参数中的选项自定义渲染过程。
+
+### `RehypePlugin`
+
+<p>
+
+**类型：** <code>Plugin\<PluginParameters, <a href="https://github.com/syntax-tree/hast#root">HastRoot</a>\></code><br />
+<Since v="7.2.0" pkg="@astrojs/markdown-remark" />
+</p>
+
+定义 unified 生态系统中的 [rehype 插件](https://github.com/rehypejs/rehype)。
+
+### `RehypePlugins`
+
+<p>
+
+**类型：** <code>(string | [string, any] | <a href="#rehypeplugin">RehypePlugin</a> | [<a href="#rehypeplugin">RehypePlugin</a>, any])[]</code><br />
+<Since v="7.2.0" pkg="@astrojs/markdown-remark" />
+</p>
+
+用于自定义 Markdown 内容生成的 HTML 输出的 [rehype 插件](https://github.com/rehypejs/rehype)列表。每一项可以是已导入的插件，也可以是 Astro 应自动导入的包名。
+
+### `RemarkPlugin`
+
+<p>
+
+**类型：** <code>Plugin\<PluginParameters, <a href="https://github.com/syntax-tree/mdast#root">MdastRoot</a>\></code><br />
+<Since v="7.2.0" pkg="@astrojs/markdown-remark" />
+</p>
+
+定义 unified 生态系统中的 [remark 插件](https://github.com/remarkjs/remark)。
+
+### `RemarkPlugins`
+
+<p>
+
+**类型：** <code>(string | [string, any] | <a href="#remarkplugin">RemarkPlugin</a> | [<a href="#remarkplugin">RemarkPlugin</a>, any])[]</code><br />
+<Since v="7.2.0" pkg="@astrojs/markdown-remark" />
+</p>
+
+用于自定义 Markdown 处理过程的 [remark 插件](https://github.com/remarkjs/remark)列表。每一项可以是已导入的插件，也可以是 Astro 应自动导入的包名。
+
+### `RemarkRehype`
+
+<p>
+
+**类型：** `Record<string, unknown>`<br />
+<Since v="7.2.0" pkg="@astrojs/markdown-remark" />
+</p>
+
+指定传递给 [`remark-rehype`](https://github.com/remarkjs/remark-rehype) 插件的选项。
+
+### `ShikiConfig`
+
+<p>
+
+**类型：** `object`<br />
+<Since v="7.2.0" pkg="@astrojs/markdown-remark" />
+</p>
+
+描述[配置 Shiki 语法高亮器](/zh-cn/reference/configuration-reference/#markdownshikiconfig)时使用的选项。
+
+<ReadMore>了解如何配置[语法高亮](/zh-cn/guides/syntax-highlighting/)并查看使用示例。</ReadMore>
+
+#### `ShikiConfig.langs`
+
+<p>
+
+**类型：** `LanguageRegistration[]`
+</p>
+
+启用语法高亮的 [Shiki 语言](https://shiki.style/languages)列表。
+
+#### `ShikiConfig.langAlias`
+
+<p>
+
+**类型：** `Record<string, string>`
+</p>
+
+定义将别名映射到 Shiki 语言 ID 的自定义规则。
+
+有关更多信息，请参阅 [Shiki 语言别名](https://shiki.style/guide/load-lang#custom-language-aliases)。
+
+#### `ShikiConfig.theme`
+
+<p>
+
+**类型：** `ThemePresets | ThemeRegistration | ThemeRegistrationRaw`
+</p>
+
+指定语法高亮的默认主题。你可以使用 [Shiki 内置主题](https://shiki.style/themes#bundled-themes)或[自定义 Shiki 主题](https://shiki.style/guide/load-theme)。
+
+<ReadMore>了解如何通过示例[设置默认 Shiki 主题](/zh-cn/guides/syntax-highlighting/#setting-a-default-shiki-theme)。</ReadMore>
+
+#### `ShikiConfig.themes`
+
+<p>
+
+**类型：** `Record<string, ThemePresets | ThemeRegistration | ThemeRegistrationRaw>`
+</p>
+
+将主题名称映射到对应 Shiki 主题配置的对象。
+
+<ReadMore>了解如何通过示例[设置深色和浅色主题](/zh-cn/guides/syntax-highlighting/#setting-light-and-dark-mode-themes)。</ReadMore>
+
+#### `ShikiConfig.defaultColor`
+
+<p>
+
+**类型：** `'light' | 'dark' | string | false`
+</p>
+
+指定定义了 [`ShikiConfig.themes`] 时要使用的默认主题。
+
+#### `ShikiConfig.wrap`
+
+<p>
+
+**类型：** `boolean | null`
+</p>
+
+是否通过换行避免水平滚动。
+
+#### `ShikiConfig.transformers`
+
+<p>
+
+**类型：** `ShikiTransformer[]`
+</p>
+
+自定义生成 HTML 的 [Shiki 转换器](https://shiki.style/guide/transformers)列表。
+
+<ReadMore>如果只需对特定代码块应用转换器，请参阅[如何将 `transformers` 应用于 `<Code />`](/zh-cn/guides/syntax-highlighting/#transformers)。</ReadMore>
+
+### `Smartypants`
+
+<p>
+
+**类型：** `object`<br />
+<Since v="7.2.0" pkg="@astrojs/markdown-remark" />
+</p>
+
+描述 [`retext-smartypants` 的配置选项](https://github.com/retextjs/retext-smartypants#options)。
+
+<ReadMore>了解如何在 Astro 中使用[智能标点](/zh-cn/guides/markdown-content/#smart-punctuation)。</ReadMore>
+
+### `SyntaxHighlightConfig`
+
+<p>
+
+**类型：** <code>\{ type: <a href="#syntaxhighlightconfigtype">SyntaxHighlightConfigType</a>; excludeLangs?: string[]; \}</code><br />
+<Since v="7.2.0" pkg="@astrojs/markdown-remark" />
+</p>
+
+指定[已配置的语法高亮器](/zh-cn/reference/configuration-reference/#markdownsyntaxhighlighttype)以及[要排除高亮的语言](/zh-cn/reference/configuration-reference/#markdownsyntaxhighlightexcludelangs)。
+
+<ReadMore>了解如何配置[语法高亮](/zh-cn/guides/syntax-highlighting/)并查看使用示例。</ReadMore>
+
+### `SyntaxHighlightConfigType`
+
+<p>
+
+**类型：** `'shiki' | 'prism'`<br />
+<Since v="7.2.0" pkg="@astrojs/markdown-remark" />
+</p>
+
+Astro 中支持的语法高亮器的联合类型。

@@ -5,6 +5,7 @@ sidebar:
 ---
 
 import Since from '~/components/Since.astro'
+import ReadMore from '~/components/ReadMore.astro'
 
 **Astro 集成**只需几行代码就能为你的项目添加新的功能和行为。
 
@@ -69,6 +70,7 @@ interface AstroIntegration {
     }) => void | Promise<void>;
     'astro:build:start'?: (options: {
       logger: AstroIntegrationLogger;
+      setPrerenderer: (prerenderer: AstroPrerenderer | ((defaultPrerenderer: AstroPrerenderer, context: { outputDirectories: AstroBuildOutputDirectories }) => AstroPrerenderer)) => void;
     }) => void | Promise<void>;
     'astro:build:setup'?: (options: {
       vite: vite.InlineConfig;
@@ -86,6 +88,7 @@ interface AstroIntegration {
     'astro:build:generated'?: (options: {
       dir: URL;
       logger: AstroIntegrationLogger;
+      routeToHeaders: RouteToHeaders;
     }) => void | Promise<void>;
     'astro:build:done'?: (options: {
       pages: { pathname: string }[];
@@ -903,8 +906,69 @@ export default {
 ```js
 'astro:build:start'?: (options: {
   logger: AstroIntegrationLogger;
+  setPrerenderer: (prerenderer: AstroPrerenderer | ((defaultPrerenderer: AstroPrerenderer, context: { outputDirectories: AstroBuildOutputDirectories }) => AstroPrerenderer)) => void;
 }) => void | Promise<void>;
 ```
+
+#### `setPrerenderer()` 选项
+
+<p>
+
+**类型：** <code>(prerenderer: <a href="#astroprerenderer">AstroPrerenderer</a> | ((defaultPrerenderer: AstroPrerenderer, context: \{ outputDirectories: <a href="#astrobuildoutputdirectories">AstroBuildOutputDirectories</a> \}) => AstroPrerenderer)) => void</code><br />
+<Since v="6.0.0" />
+</p>
+
+用于为构建设置自定义预渲染器的回调函数。适配器可以通过它提供自己的预渲染逻辑。
+
+该函数接受 [`AstroPrerenderer` 对象](#astroprerenderer)，也可以接受一个工厂函数。工厂函数会接收默认预渲染器并返回自定义预渲染器，适用于包装或扩展默认行为。
+
+```js
+'astro:build:start': ({ setPrerenderer }) => {
+  setPrerenderer((defaultPrerenderer) => ({
+    name: 'my-prerenderer',
+    async setup() {
+      // Optional: called once before prerendering starts
+    },
+    async getStaticPaths() {
+      // Returns array of { pathname: string, route: RouteData }
+      return defaultPrerenderer.getStaticPaths();
+    },
+    async render(request, { routeData }) {
+      // request: Request, options: { routeData: RouteData }
+      // Returns: Response
+    },
+    async teardown() {
+      // Optional: called after all pages are prerendered
+    }
+  }));
+}
+```
+
+<p><Since v="7.4.0" /></p>
+
+工厂函数还会将上下文对象作为第二个参数。它的 `outputDirectories` 属性包含由 Vite 解析的[客户端、服务端和预渲染输出目录](#astrobuildoutputdirectories)。集成和 Vite 插件可以更改 Astro 写入构建产物的位置。请使用这些值，而不是配置的 [`build.client`](/zh-cn/reference/configuration-reference/#buildclient) 或 [`build.server`](/zh-cn/reference/configuration-reference/#buildserver)。
+
+以下示例在自定义预渲染器工厂中读取输出目录：
+
+```js
+'astro:build:start': ({ setPrerenderer }) => {
+  setPrerenderer((defaultPrerenderer, { outputDirectories }) => {
+    const { client, server, prerender } = outputDirectories;
+
+    return {
+      name: 'my-prerenderer',
+      async getStaticPaths() {
+        return defaultPrerenderer.getStaticPaths();
+      },
+      async render(request, { routeData }) {
+        // Render using the output in `client`, `server`, or `prerender`
+      },
+    };
+  });
+}
+```
+
+<ReadMore>有关实现自定义预渲染器的更多详情，请参阅[适配器参考](/zh-cn/reference/adapter-reference/#custom-prerenderer)。</ReadMore>
 
 ### `astro:build:setup`
 
@@ -1257,6 +1321,7 @@ export default {
 'astro:build:generated'?: (options: {
   dir: URL;
   logger: AstroIntegrationLogger;
+  routeToHeaders: RouteToHeaders;
 }) => void | Promise<void>;
 ```
 
@@ -1267,7 +1332,7 @@ export default {
 **类型：** [`URL`](https://developer.mozilla.org/zh-CN/docs/Web/API/URL)
 </p>
 
-一个构建输出目录的 URL 路径。
+由 Vite 解析的客户端构建输出目录的 URL 路径。默认情况下，静态构建使用 [`outDir`](/zh-cn/reference/configuration-reference/#outdir)，按需渲染构建使用 [`build.client`](/zh-cn/reference/configuration-reference/#buildclient)，除非集成或 Vite 插件更改了输出目录。
 
 下面的示例使用 Node 内置的 [`fileURLToPath`](https://nodejs.org/api/url.html#urlfileurltopathurl-options) 工具函数来计算由集成提供的文件的有效绝对路径字符串：
 
@@ -1283,6 +1348,16 @@ export default {
   }
 }
 ```
+
+#### `routeToHeaders` 选项
+
+<p>
+
+**类型：** <code>Map\<string, <a href="#headerpayload">HeaderPayload</a>\></code><br />
+<Since v="6.0.0" />
+</p>
+
+将路由映射到相关 HTTP 请求头。适配器可以根据这些请求头生成配置文件。
 
 ### `astro:build:done`
 
@@ -1310,7 +1385,7 @@ export default {
 **类型：** [`URL`](https://developer.mozilla.org/zh-CN/docs/Web/API/URL)
 </p>
 
-一个构建输出目录的 URL 路径。
+由 Vite 解析的客户端构建输出目录的 URL 路径。默认情况下，静态构建使用 [`outDir`](/zh-cn/reference/configuration-reference/#outdir)，按需渲染构建使用 [`build.client`](/zh-cn/reference/configuration-reference/#buildclient)，除非集成或 Vite 插件更改了输出目录。
 
 下面的示例使用 Node 内置的 [`fileURLToPath()`](https://nodejs.org/api/url.html#urlfileurltopathurl-options) 工具函数来计算集成提供的文件的有效绝对路径字符串，然后再将其写入该文件：
 
@@ -1393,11 +1468,13 @@ Astro 为未来的内置钩子保留了 `astro:` 前缀。请在命名时，为�
 
 ```ts
 import type {
+  AstroBuildOutputDirectories,
   AstroIntegrationLogger,
   AstroIntegrationMiddleware,
   AstroMiddlewareInstance,
   AstroRenderer,
   ClientDirectiveConfig,
+  HeaderPayload,
   HookParameters,
   IntegrationResolvedRoute,
   RedirectConfig,
@@ -1413,6 +1490,71 @@ import type {
   IntegrationRouteData,
 } from "astro";
 ```
+
+### `AstroBuildOutputDirectories`
+
+<p>
+
+**类型：** `{ client: URL; server: URL; prerender: URL; }`<br />
+<Since v="7.4.0" />
+</p>
+
+描述 Vite 为每个构建环境解析的输出目录。自定义预渲染器工厂会在其上下文参数中通过 `outputDirectories` 接收此对象。
+
+#### `AstroBuildOutputDirectories.client`
+
+<p>
+
+**类型：** `URL`
+</p>
+
+客户端构建产物（例如 JavaScript、CSS 和静态页面）的解析后输出目录。
+
+#### `AstroBuildOutputDirectories.server`
+
+<p>
+
+**类型：** `URL`
+</p>
+
+服务端构建产物的解析后输出目录。
+
+#### `AstroBuildOutputDirectories.prerender`
+
+<p>
+
+**类型：** `URL`
+</p>
+
+预渲染构建环境的解析后输出目录。
+
+### `HeaderPayload`
+
+<p>
+
+**类型：** `{ route: IntegrationResolvedRoute; headers: Headers; }`<br />
+<Since v="6.0.0" />
+</p>
+
+描述静态路由及其关联的请求头。
+
+#### `HeaderPayload.route`
+
+<p>
+
+**类型：** [`IntegrationResolvedRoute`](#integrationresolvedroute)
+</p>
+
+包含静态路由元数据。
+
+#### `HeaderPayload.headers`
+
+<p>
+
+**类型：** `Headers`
+</p>
+
+与该路由关联的 [`Headers`](https://developer.mozilla.org/zh-CN/docs/Web/API/Headers)。
 
 ### `AstroIntegrationLogger`
 
@@ -2427,7 +2569,7 @@ generate({ id: 'presentation' }) // 将输出 `/blog/presentation`
 <Since v="5.2.0" />
 </p>
 
-确定客户端构建产物(例如 JavaScript、CSS)在构建目录中的输出路径。
+确定客户端构建产物（例如 JavaScript、CSS）的输出路径，该路径由 Vite 解析。对于按需渲染的构建，默认与 [`build.client`](/zh-cn/reference/configuration-reference/#buildclient) 相同。
 
 #### `SSRManifest.buildServerDir`
 
@@ -2437,7 +2579,7 @@ generate({ id: 'presentation' }) // 将输出 `/blog/presentation`
 <Since v="5.2.0" />
 </p>
 
-确定服务器端构建产物在构建目录中的输出路径。
+确定服务器端构建产物的输出路径，该路径由 Vite 解析。对于按需渲染的构建，默认与 [`build.server`](/zh-cn/reference/configuration-reference/#buildserver) 相同。
 
 #### `SSRManifest.csp`
 

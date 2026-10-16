@@ -302,10 +302,6 @@ import CustomTable from './CustomTable.astro';
 命名插槽也可以传递给 [UI 框架组件](/zh-cn/guides/framework-components/) ！
 :::
 
-:::note
-Astro 不支持动态生成插槽名称，例如在 [map](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array/map) 函数中生成。如果 UI 框架组件中需要此功能，则最好在框架本身中生成这些动态插槽。
-:::
-
 ### 插槽回退内容
 
 插槽还可以渲染**回退内容**。当没有匹配的子元素传递给插槽时，`<slot />` 元素将呈现其自己的占位符子元素。

@@ -350,6 +350,9 @@ export default defineConfig({
 
 ### `recmaPlugins`
 
+:::caution[已弃用]
+此选项已弃用，并将在未来的主版本中移除。请安装 [`unified()` 处理器](/zh-cn/guides/markdown-content/#setting-up-a-markdown-processor)，并将 recma 插件传递给它。
+:::
 
 <p>
 
@@ -358,9 +361,7 @@ export default defineConfig({
 <Since v="0.11.5" pkg="@astrojs/mdx" />
 </p>
 
-这些是直接修改输出 [estree](https://github.com/estree/estree) 的插件。这对于在你的 MDX 文件中修改或注入 JavaScript 变量很有用。
-
-我们建议[使用 AST Explorer](https://astexplorer.net/)来处理 estree 的输出，并尝试 [`estree-util-visit`](https://unifiedjs.com/explore/package/estree-util-visit/) 来搜索整个 JavaScript 节点。
+有关更多信息，请参阅 `unified()` 的 [`recmaPlugins` 选项](/zh-cn/reference/markdown-processors/unified/#optionsrecmaplugins)。你也可以在 [MDX 配置中直接使用它们](#using-recma-plugins)。
 
 ### optimize
 

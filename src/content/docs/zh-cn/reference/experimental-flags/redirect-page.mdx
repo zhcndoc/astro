@@ -1,0 +1,100 @@
+---
+title: 实验性静态重定向页面
+sidebar:
+  label: 静态重定向页面
+i18nReady: true
+---
+
+import Since from '~/components/Since.astro'
+
+<p>
+
+**类型：** `boolean`<br />
+**默认值：** `false`<br />
+<Since v="7.4.0" />
+</p>
+
+这项实验性功能允许你自定义 Astro 在静态构建中为重定向生成的 HTML 页面。你可以在这些页面中添加自己的标记或翻译后的文本。
+
+静态网站无法发送 HTTP `Location` 请求头。Astro 会为每次重定向生成包含 [meta refresh](https://developer.mozilla.org/zh-CN/docs/Web/HTML/Reference/Elements/meta#setting_a_page_redirect) 的 HTML 页面。通过此功能，你可以使用自己的 `src/pages/3xx.astro` 页面替换 Astro 内置的页面。
+
+自定义页面适用于[配置的重定向](/zh-cn/reference/configuration-reference/#redirects)、预渲染页面中的 [`Astro.redirect()`](/zh-cn/reference/api-reference/#redirect) 调用，以及国际化重定向。它不影响按需渲染的重定向，后者使用 HTTP `Location` 请求头。
+
+如果禁用了 `experimental.redirectPage`，Astro 会将 `3xx.astro` 视为普通页面，并在重定向时使用内置的重定向页面。
+
+## 启用此功能
+
+在 Astro 配置中将 `experimental.redirectPage` 设置为 `true`：
+
+```js title="astro.config.mjs"
+import { defineConfig } from 'astro/config';
+
+export default defineConfig({
+  experimental: {
+    redirectPage: true,
+  },
+});
+```
+
+## 创建自定义重定向页面
+
+启用此[功能](#启用此功能)后，Astro 会查找 `src/pages/3xx.astro` 文件来处理静态重定向。如果该文件不存在或渲染失败，Astro 会回退到内置的重定向页面。
+
+你的自定义页面会通过 props 接收重定向详情。使用 `to` 属性设置 `<meta http-equiv="refresh" />` 元素的目标地址。静态构建不会发送 `Location` 请求头，因此会由此元素执行重定向。如果该元素缺失或指向其他地址，Astro 会在构建期间发出警告。
+
+要获得类型推断，请导入 [`RedirectPageProps`](#redirectpageprops)，并将其赋给 [`Props` 类型](/zh-cn/guides/typescript/#component-props)。
+
+以下示例创建了一个自定义的 `src/pages/3xx.astro` 页面：
+
+```astro title="src/pages/3xx.astro"
+---
+import type { RedirectPageProps as Props } from 'astro';
+
+const { from, to, status, delay } = Astro.props;
+---
+
+<html lang="en">
+  <head>
+    <meta http-equiv="refresh" content={`${delay};url=${to}`} />
+    <meta name="robots" content="noindex" />
+    <title>Redirecting</title>
+  </head>
+  <body>
+    <p>This page has moved. <a href={to}>Continue to {to}</a>.</p>
+  </body>
+</html>
+```
+
+Astro 也会将 `3xx.astro` 作为普通的 `/3xx` 路由构建，并写入 `3xx.html`。有人直接访问该路由时，Astro 不会传递重定向 props。
+
+## `RedirectPageProps`
+
+Astro 从 `astro` 导出 `RedirectPageProps` 类型。导入此类型可为自定义页面的 props 添加类型：
+
+### `from`
+
+**类型：** `string`
+
+被重定向的原路径名。
+
+### `to`
+
+**类型：** `string`
+
+重定向的目标地址。
+
+### `status`
+
+**类型：** `number`
+
+重定向的 HTTP 状态码，例如 `301` 或 `302`。
+
+### `delay`
+
+**类型：** `number`
+
+meta refresh 的延迟秒数。对于 `302` 重定向，Astro 使用 `2`；其他状态码使用 `0`。
+
+---
+
+有关此实验性 API 的提案和讨论，请参阅[自定义 3xx 重定向页面 RFC](https://github.com/withastro/roadmap/pull/1444)。

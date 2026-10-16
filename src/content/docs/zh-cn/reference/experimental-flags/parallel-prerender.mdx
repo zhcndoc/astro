@@ -1,0 +1,55 @@
+---
+title: 实验性并行预渲染
+sidebar:
+  label: 并行预渲染
+i18nReady: true
+---
+
+import Since from '~/components/Since.astro'
+
+<p>
+
+**类型：** `boolean | { workers?: number }`<br />
+**默认值：** `false`<br />
+<Since v="7.4.0" />
+</p>
+
+这项实验性功能会让 `astro build` 同时使用多个 CPU 核心并行渲染静态页面，而不是逐个渲染。对于页面较多的网站，它可以显著缩短构建时间。
+
+要启用并行预渲染，请在 Astro 配置中添加此标志：
+
+```js title="astro.config.mjs" ins={5}
+import { defineConfig } from "astro/config";
+
+export default defineConfig({
+  experimental: {
+    parallelPrerender: true,
+  },
+});
+```
+
+## 选择工作进程数
+
+默认情况下，Astro 会使用除一个之外的所有可用 CPU 核心。要减少使用的核心数，请将 `workers` 设置为 Astro 应使用的 CPU 核心数：
+
+```js title="astro.config.mjs" ins={5-7}
+import { defineConfig } from "astro/config";
+
+export default defineConfig({
+  experimental: {
+    parallelPrerender: {
+      workers: 4,
+    },
+  },
+});
+```
+
+每增加一个工作进程，构建使用的内存都会增加。如果构建内存不足，或构建速度没有提升，请尝试减少工作进程数。
+
+## 限制
+
+并行预渲染目前有以下限制：
+
+- 并行渲染的页面不会共享模块级变量。例如，在渲染一个页面时缓存在变量中的值，不一定能在渲染另一个页面时使用。
+- [`getStaticPaths()`](/zh-cn/reference/routing-reference/#getstaticpaths) 的 props 中包含函数或类实例等不可序列化值的页面，无法并行渲染。
+- 如果你的适配器提供了自己的页面预渲染方式，此功能不会生效。在官方适配器中，只有 [`@astrojs/cloudflare`](/zh-cn/guides/integrations-guide/cloudflare/) 符合此情况。忽略此标志时，Astro 会在构建期间输出警告。

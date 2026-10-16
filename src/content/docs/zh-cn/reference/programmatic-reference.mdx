@@ -162,7 +162,7 @@ await build({
 ```ts
 export interface BuildOptions {
 	devOutput?: boolean;
-	teardownCompiler?: boolean;
+	timings?: boolean;
 }
 ```
 
@@ -177,18 +177,16 @@ export interface BuildOptions {
 
 输出一个基于开发的构建，与在 `astro dev` 中转换的代码相似。这对于测试仅构建时出现的问题非常有用，同时包含附加的调试信息。
 
-#### `teardownCompiler`
+#### `timings`
 
 <p>
 
 **类型：** `boolean`<br />
-**默认值：** `true`<br />
-<Since v="5.4.0" />
+**默认值：** `false`<br />
+<Since v="7.4.0" />
 </p>
 
-在构建完成后销毁编译器的 WASM 实例。这可以在单次构建时提升性能，但在连续多次构建时可能导致性能下降。
-
-在同一次执行中构建多个项目时（例如测试期间），禁用这个选项可以显著提升性能并降低峰值内存占用，但代价是持续内存占用会升高。
+构建完成后，输出构建耗时摘要。这与运行带有 [`--timings` 标志](/zh-cn/reference/cli-reference/#--timings) 的 `astro build` 效果相同。
 
 ## `preview()`
 

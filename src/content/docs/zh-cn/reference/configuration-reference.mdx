@@ -377,7 +377,7 @@ $ astro build --root ./my-project-directory
 
 这些功能仅存在于使用 `server` 模式按需渲染的页面，或在 `static` 模式中选择退出预渲染的页面。
 
-默认情况下，Astro 将自动检查在动态渲染的页面中，每个请求发送的 URL 是否与 "origin" 头匹配。你可以通过将 `checkOrigin` 设置为 `false` 来禁用此行为：
+默认情况下，Astro 会检查浏览器请求元数据，确保提交到按需渲染页面的表单来自同一源。将 `checkOrigin` 设置为 `false` 可以禁用此行为：
 
 ```js
 // astro.config.mjs
@@ -398,11 +398,11 @@ export default defineConfig({
 <Since v="4.9.0" />
 </p>
 
-检查所有现代浏览器自动传递的 "origin" 头是否与每个 `Request` 发送的 URL 匹配。这用于提供跨站请求伪造（CSRF）保护。
+通过检查浏览器发送的请求头与 `Request` URL 是否匹配来提供[跨站请求伪造（CSRF）](https://developer.mozilla.org/en-US/docs/Web/Security/Attacks/CSRF)保护。现代浏览器使用 `Sec-Fetch-Site` 请求头；如果该请求头不可用，则回退到 `Origin` 请求头。
 
-"origin" 检查仅对按需渲染的页面执行，并且仅对具有以下 `content-type` 头的 `POST`、`PATCH`、`DELETE` 和 `PUT` 请求执行：`'application/x-www-form-urlencoded'`、`'multipart/form-data'`、`'text/plain'`。
+该检查仅针对按需渲染的页面执行，并且只检查 `POST`、`PATCH`、`DELETE` 和 `PUT` 等不安全请求；这些请求可以没有 `content-type` 请求头，也可以使用以下值之一：`'application/x-www-form-urlencoded'`、`'multipart/form-data'`、`'text/plain'`。
 
-如果 "origin" 头与请求的 `pathname` 不匹配，Astro 将返回 403 状态码，并不会渲染该页面。
+如果请求被识别为跨源请求，Astro 将返回 403 状态码，并且不会渲染页面。
 
 #### security.allowedDomains
 
@@ -1059,7 +1059,7 @@ prefetch: {
 
 <p>
 
-**类型：**`Object`<br />
+**类型：** `{entrypoint: 'astro/assets/services/sharp' | string, config: Record<string, any>} | {build: ImageServiceConfig, runtime: ImageServiceConfig}`<br />
 **默认值：**`{entrypoint: 'astro/assets/services/sharp', config?: {}}`<br />
 <Since v="2.1.0" />
 </p>
@@ -1083,6 +1083,26 @@ prefetch: {
   },
 }
 ```
+
+从 Astro v7.4 开始，你还可以分别配置 `build` 和 `runtime` 服务。`build` 服务会在构建时优化预渲染页面中的图像，也用于开发过程。`runtime` 服务则处理按需渲染页面中的图像，以及部署后网站的[图像端点](#imageendpoint)。
+
+以下示例使用 Sharp 优化预渲染页面中的图像，并使用图像 CDN 处理按需渲染页面中的图像：
+
+```js
+// astro.config.mjs
+import { defineConfig } from 'astro/config';
+
+export default defineConfig({
+  image: {
+    service: {
+      build: { entrypoint: 'astro/assets/services/sharp' },
+      runtime: { entrypoint: 'my-image-cdn-service' },
+    },
+  },
+});
+```
+
+预渲染页面中的图像始终在构建期间通过 Node 生成，因此即使你的适配器在其他运行时（例如 Cloudflare 的 `workerd`）中预渲染页面，也可以将 Sharp 用作 `build` 服务。
 
 #### image.service.config.limitInputPixels
 
